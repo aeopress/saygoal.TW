@@ -1,0 +1,39 @@
+{
+  "name": "andrej-karpathy-skills",
+  "version": "4.0.0",
+  "description": "Declarative reframing for Codex: turn imperative requests into success criteria, verification commands, non-goals, and ready-to-use /goal conditions.",
+  "author": {
+    "name": "yelban"
+  },
+  "homepage": "https://github.com/aeopress/andrej-karpathy-skills.TW",
+  "repository": "https://github.com/aeopress/andrej-karpathy-skills.TW",
+  "license": "MIT",
+  "keywords": [
+    "guidelines",
+    "best-practices",
+    "coding",
+    "karpathy",
+    "traditional-chinese",
+    "declarative",
+    "goal",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Karpathy Skills",
+    "shortDescription": "Convert requests into verifiable Codex goals",
+    "longDescription": "Use the dec skill before implementation to reframe imperative coding requests as declarative contracts: success criteria, verification command, non-goals, and a ready-to-use Codex /goal condition.",
+    "developerName": "yelban",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/aeopress/andrej-karpathy-skills.TW",
+    "defaultPrompt": [
+      "$dec fix the login flicker on first load",
+      "$dec make this endpoint faster",
+      "$dec refactor auth without changing behavior"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

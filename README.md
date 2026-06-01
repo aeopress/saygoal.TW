@@ -124,13 +124,13 @@ OpenAI's Codex CLI shipped its own `/goal` in [v0.128.0 on 2026-04-30](https://d
 | how it should validate progress | **Verification command** |
 | when it should stop | success + non-goals (the contract *is* the stop condition) |
 
-Three confirmed values of running `/dec` before opening a Codex `/goal`:
+Three confirmed values of running `dec` before opening a Codex `/goal`:
 
 1. **You don't have to remember Codex's four-part checklist** — `/dec`'s prompt template enforces all four blocks every time.
 2. **`/dec` requires each block to be measurable** — the verbatim text in [`plugin/commands/dec.md`](./plugin/commands/dec.md) is "verifiable end state (tests passing / output match / performance threshold / lint clean)". Codex docs say goals should be testable but don't ship a template that enforces this on the user side.
 3. **`/dec`'s "not applicable — just do it" short-circuit for subjective tasks** (UI tweaks, prose, single-line renames) has no documented equivalent in Codex's `/goal`. Opening `/goal` on a subjective task is exactly what Codex docs warn against: **"Avoid using a goal for a loose list of unrelated work."**
 
-**Using `/dec` with Codex**: `/dec` is currently a Claude Code slash command. To use the same contract against Codex, run `/dec` in Claude Code first, then paste the ready-to-use `/goal` line `/dec` emits into Codex CLI's `/goal "..."`. The prompt template itself ([`plugin/commands/dec.md`](./plugin/commands/dec.md)) is plain text and vendor-agnostic.
+**Using `dec` with Codex**: this repo ships a Codex plugin at [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills), with a `dec` skill that mirrors the Claude Code command. In Codex CLI, invoke it as `$dec <request>` or select it through `/skills`; the generated #4 block is ready to paste into Codex `/goal "..."`. This does not change Claude Code's `/dec`: the original command remains at [`plugin/commands/dec.md`](./plugin/commands/dec.md), still using Claude's `$ARGUMENTS` template.
 
 > **Caveat — design claim, not empirical.** We have **not** run a controlled benchmark of `/dec` + Codex `/goal`. The mapping above is derived by reading `/dec`'s prompt template against Codex's [published goal-writing guidance](https://developers.openai.com/codex/use-cases/follow-goals). The N=40 A/B test in [`EXPERIMENT.md`](./EXPERIMENT.md) measured CLAUDE.md effects on Opus 4.7, not `/dec` itself.
 
@@ -196,6 +196,7 @@ The three reminders and the `/dec` command are independent — pick any combinat
 | **B. `CLAUDE.md`** | always-on in system prompt | — | per-project file, manual `curl` |
 | **C. Manual command** | — | `/dec` (short, global) | manual `curl` |
 | **D. `git clone`** | `cp` whole file *or* `sed`-append rules | `/dec` (short, symlinked) | `git pull` updates `/dec`; `CLAUDE.md` is your editable copy |
+| **E. Codex plugin** | — | `dec` skill (`$dec` / `/skills`) | Codex plugin marketplace |
 
 **Option A: Claude Code plugin** — installs only the `/dec` command (namespaced), auto-updates via marketplace. The skill that wrapped the three reminders was removed in v3.0.0 after the empirical A/B test showed it had no measurable effect (see [`EXPERIMENT.md`](./EXPERIMENT.md)). For the always-on rules, use Option B, C, or D below.
 
@@ -257,8 +258,18 @@ cd ~/.claude/external/andrej-karpathy-skills.TW && git pull
 
 > The `sed` extraction starts at the first `## Stop when confused` heading, skipping the title and intro paragraph. The trailing `/dec` invocation note is included — useful as a footer in your project's CLAUDE.md.
 
+**Option E: Codex plugin** — installs the `dec` skill for Codex without touching the Claude Code `/dec` command. Run these from the repository root after cloning:
+
+```bash
+codex plugin marketplace add .
+codex plugin add andrej-karpathy-skills@karpathy-skills
+```
+
+Use it in Codex as `$dec <request>` or through `/skills`; then paste the generated `/goal "..."` line into Codex's built-in `/goal` when you want the autonomous loop.
+
 ### Recommended combinations
 
+- **Codex users: E** — installs the Codex `dec` skill and leaves every Claude Code path untouched. Pair the generated condition with Codex `/goal`.
 - **A + D** ★ **top pick** — plugin auto-updates `/andrej-karpathy-skills:dec` via marketplace; a separate `git clone` + `ln -sf` gives you the short `/dec` that updates via `git pull`. Both invocations work, the file contents are identical. Best blend of "set and forget" plus "short trigger word", since Claude Code has no native slash-command alias mechanism — having both channels installed is the workaround. Step 3(c) (sed-append CLAUDE.md into `~/.claude/CLAUDE.md`) is optional alongside.
 - **D alone** — clone once, symlink `/dec`, copy CLAUDE.md as a starting point. `git pull` updates `/dec` (and future README / EXPERIMENT.md); CLAUDE.md stays editable per project. No marketplace, short `/dec`. Solid choice if you don't want the plugin path at all.
 - **B + C** (no plugin, no clone) — `CLAUDE.md` always-on + short `/dec`, both via `curl`. Smallest footprint, but updates are manual (re-run the `curl` commands).

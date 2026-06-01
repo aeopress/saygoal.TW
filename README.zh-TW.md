@@ -124,13 +124,13 @@ OpenAI 的 Codex CLI 比 Claude Code 早 11 天，在 [v0.128.0（2026-04-30）]
 | how it should validate progress | **驗證指令** |
 | when it should stop | 成功條件 + 非目標（契約本身**就是**停止條件） |
 
-開 Codex `/goal` 之前先跑 `/dec` 的三個 confirmed value：
+開 Codex `/goal` 之前先跑 `dec` 的三個 confirmed value：
 
 1. **你不用記 Codex 那條四點 checklist**——`/dec` 的 prompt template 每次都強制產出四塊。
 2. **`/dec` 要求每塊都可量測**——[`plugin/commands/dec.md`](./plugin/commands/dec.md) prompt 原文寫「可驗證的端狀態（測試通過 / 輸出比對 / 效能門檻 / lint clean）」。Codex docs 雖然主張 goal 應該可測試，但沒附樣板在 user 端強制執行這件事。
 3. **`/dec` 對主觀任務的「不適用，建議直接做」short-circuit**（UI 微調、文案、單行 rename）—— Codex `/goal` 沒有 documented 等價功能。對主觀任務開 `/goal` 正是 Codex docs 警告的：**"Avoid using a goal for a loose list of unrelated work."**
 
-**`/dec` 與 Codex 搭配使用**：`/dec` 目前是 Claude Code 的 slash command。要把同一份契約用在 Codex、先在 Claude Code 跑 `/dec`、然後把 `/dec` 輸出的那條 ready-to-use `/goal` 指令直接貼到 Codex CLI 的 `/goal "..."`。Prompt template 本身（[`plugin/commands/dec.md`](./plugin/commands/dec.md)）是純文字、不綁 vendor。
+**`dec` 與 Codex 搭配使用**：本倉庫現在也提供 Codex plugin，位置在 [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills)，裡面有一個對齊 Claude Code command 的 `dec` skill。在 Codex CLI 可用 `$dec <request>` 叫用，或透過 `/skills` 選取；它輸出的第 #4 塊可以直接貼到 Codex `/goal "..."`。這不會改變 Claude Code 的 `/dec`：原本的 command 仍在 [`plugin/commands/dec.md`](./plugin/commands/dec.md)，也仍然使用 Claude 的 `$ARGUMENTS` template。
 
 > **Caveat——這是設計層面的聲明、不是實證。** 我們**沒有**對 `/dec` + Codex `/goal` 跑控制組實驗。上面的對應是讀 `/dec` 的 prompt template 對照 Codex [published goal-writing guidance](https://developers.openai.com/codex/use-cases/follow-goals) 推得。[`EXPERIMENT.md`](./EXPERIMENT.md) 那個 N=40 A/B 測的是 CLAUDE.md 對 Opus 4.7 的效應、不是 `/dec` 本身。
 
@@ -196,6 +196,7 @@ Karpathy 列的陷阱中、v2 *沒有*刪掉的那條最重要：**`Loop on decl
 | **B. `CLAUDE.md`** | 永遠在 system prompt | — | 依專案放一份、手動 `curl` |
 | **C. 手動指令檔** | — | `/dec`（短、全域） | 手動 `curl` |
 | **D. `git clone`** | 整檔 `cp` *或* `sed` 追加規則 | `/dec`（短、symlink 過去） | `git pull` 更新 `/dec`；`CLAUDE.md` 是你的可編輯副本 |
+| **E. Codex plugin** | — | `dec` skill（`$dec` / `/skills`） | Codex plugin marketplace |
 
 **選項 A：Claude Code 外掛** — 只安裝 `/dec` 指令（含 namespace）、透過 marketplace 自動更新。v3.0.0 起移除了那個包著三條規則的 skill——因為實證告訴我們它在 Opus 4.7 上沒有可測量效應（見 [`EXPERIMENT.md`](./EXPERIMENT.md)）。要永遠在的規則，請用下面的 B / C / D。
 
@@ -254,8 +255,18 @@ cd ~/.claude/external/andrej-karpathy-skills.TW && git pull
 
 > `sed` 從第一個 `## Stop when confused` 標題開始抓、跳過 README title 與前言段。末尾 `/dec` 呼叫說明會被一起追加——當作專案 CLAUDE.md 的 footer 也合用。
 
+**選項 E：Codex plugin** — 只替 Codex 安裝 `dec` skill，不動 Claude Code 既有 `/dec` command。Clone 後在本 repo root 執行：
+
+```bash
+codex plugin marketplace add .
+codex plugin add andrej-karpathy-skills@karpathy-skills
+```
+
+在 Codex 裡用 `$dec <request>` 或 `/skills` 叫用；若要啟動 autonomous loop，再把輸出的 `/goal "..."` 貼進 Codex 內建 `/goal`。
+
 ### 推薦組合
 
+- **Codex 使用者：E** — 安裝 Codex `dec` skill，完全不影響 Claude Code 路徑。輸出的 condition 可直接搭配 Codex `/goal`。
 - **A + D** ★ **首選** — 外掛 marketplace 自動更新 `/andrej-karpathy-skills:dec`；另外 `git clone` + `ln -sf` 給你短 `/dec`、透過 `git pull` 同步。兩種喊法都能用、檔案內容相同。這是「set and forget」加「短觸發詞」的最佳組合——Claude Code 沒有原生 slash command alias 機制、雙 channel 安裝是 workaround。Step 3(c)（sed 追加 CLAUDE.md 到 `~/.claude/CLAUDE.md`）可選順帶做。
 - **只裝 D** — clone 一次、symlink `/dec`、`cp` CLAUDE.md 當起點。`git pull` 更新 `/dec`（與未來的 README / EXPERIMENT.md）；CLAUDE.md 保留專案內可編輯。不依賴 marketplace、保留短 `/dec`。完全不想走 plugin 路徑的話這個也夠。
 - **B + C**（不裝外掛、不 clone）— `CLAUDE.md` 永遠在 + 短 `/dec`，兩個都 `curl`。最輕量、但要更新時要手動重跑 `curl`。
