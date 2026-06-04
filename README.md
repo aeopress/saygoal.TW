@@ -1,12 +1,14 @@
-# Karpathy-Inspired Claude Code Guidelines
+# saygoal
 
-![/dec — Imperative to Declarative](./andrej-karpathy-skills.TW.png)
+> **say a goal, watch it get done** — a declarative `/dec` + `/goal` workflow for Claude Code & Codex, in the spirit of Karpathy's "give it success criteria and watch it go".
+
+![/dec — Imperative to Declarative](./saygoal.TW.png)
 
 A small `CLAUDE.md` that complements Claude Code's built-in guidance, derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
 
 English | [繁體中文（台灣）](./README.zh-TW.md)
 
-> **Source of truth**: [`aeopress/andrej-karpathy-skills.TW`](https://github.com/aeopress/andrej-karpathy-skills.TW) (formerly maintained at [`yelban/andrej-karpathy-skills.TW`](https://github.com/yelban/andrej-karpathy-skills.TW), now archived)
+> **Source of truth**: [`aeopress/saygoal.TW`](https://github.com/aeopress/saygoal.TW) (formerly maintained at [`yelban/andrej-karpathy-skills.TW`](https://github.com/yelban/andrej-karpathy-skills.TW), now archived)
 
 **Three rules in `CLAUDE.md`, one slash command (`/dec`), and an A/B test — re-run on Opus 4.8 — that says the rules barely move either model. 4.8's new lean system prompt validates the direction: Anthropic itself stripped the explicit guardrails. So the real leverage is `/dec` + Claude Code's built-in `/goal`, not the rules file.**
 
@@ -131,7 +133,7 @@ Three confirmed values of running `dec` before opening a Codex `/goal`:
 2. **`/dec` requires each field to be measurable** — [`plugin/commands/dec.md`](./plugin/commands/dec.md) demands "a verifiable end state the `/goal` evaluator can find in the transcript: exit codes, output match, a quantified threshold". Codex docs say goals should be testable but don't ship a template that enforces this on the user side.
 3. **`/dec`'s "not applicable — just do it" short-circuit for subjective tasks** (UI tweaks, prose, single-line renames) has no documented equivalent in Codex's `/goal`. Opening `/goal` on a subjective task is exactly what Codex docs warn against: **"Avoid using a goal for a loose list of unrelated work."**
 
-**Using `dec` with Codex**: this repo ships a Codex plugin at [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills), with a `dec` skill that outputs Codex's seven-field `/goal` template (the Claude command outputs a single natural-language condition instead — each side emits its host's native format). In Codex CLI, invoke it as `$dec <request>` or select it through `/skills`; the generated `/goal` block is ready to paste into Codex `/goal "..."`. This does not change Claude Code's `/dec`: the original command remains at [`plugin/commands/dec.md`](./plugin/commands/dec.md), still using Claude's `$ARGUMENTS` template.
+**Using `dec` with Codex**: this repo ships a Codex plugin at [`plugins/saygoal`](./plugins/saygoal), with a `dec` skill that outputs Codex's seven-field `/goal` template (the Claude command outputs a single natural-language condition instead — each side emits its host's native format). In Codex CLI, invoke it as `$dec <request>` or select it through `/skills`; the generated `/goal` block is ready to paste into Codex `/goal "..."`. This does not change Claude Code's `/dec`: the original command remains at [`plugin/commands/dec.md`](./plugin/commands/dec.md), still using Claude's `$ARGUMENTS` template.
 
 > **Caveat — design claim, not empirical.** We have **not** run a controlled benchmark of `/dec` + Codex `/goal`. The mapping above is derived by reading `/dec`'s prompt template against Codex's [published goal-writing guidance](https://developers.openai.com/codex/use-cases/follow-goals). The N=40 A/B test in [`EXPERIMENT.md`](./EXPERIMENT.md) measured CLAUDE.md effects on Opus 4.7, not `/dec` itself.
 
@@ -139,7 +141,7 @@ Three confirmed values of running `dec` before opening a Codex `/goal`:
 
 User-side discipline that does not depend on which model is on the other side. Our [empirical A/B test](./EXPERIMENT.md) found CLAUDE.md rules had no measurable effect on Opus 4.7's coding behavior — but a well-formed contract plus an autonomous evaluation loop is leverage **you** control, not leverage you hope the model picks up. It also doesn't depreciate when Opus 4.7 → 4.8 → 5.0; the `/dec` template and `/goal` evaluator stay the same.
 
-> **Note on invocation:** when installed via the plugin (Option A below), Claude Code namespaces the command to `/andrej-karpathy-skills:dec`. For the short `/dec` form, install the command file manually (Option C). The built-in `/goal` is always available regardless of install method.
+> **Note on invocation:** when installed via the plugin (Option A below), Claude Code namespaces the command to `/saygoal:dec`. For the short `/dec` form, install the command file manually (Option C). The built-in `/goal` is always available regardless of install method.
 
 > **Note on the `/goal` evaluator:** `/goal` sends each turn's transcript to Claude Code's built-in "small fast model" slot, which [defaults to Haiku](https://code.claude.com/docs/en/goal.md). There is no `/goal`-specific model override; the only way to swap it is to redirect the slot globally with the `ANTHROPIC_DEFAULT_HAIKU_MODEL` environment variable ([model config docs](https://code.claude.com/docs/en/model-config.md)), which changes the `haiku` alias everywhere — most setups never need to touch this.
 
@@ -193,7 +195,7 @@ The three reminders and the `/dec` command are independent — pick any combinat
 
 | | Three reminders | `/dec` command | Mechanism |
 |---|---|---|---|
-| **A. Plugin** | — (skill removed in v3.0.0; use B / C / D for `CLAUDE.md`) | `/andrej-karpathy-skills:dec` (namespaced) | auto-updates via marketplace |
+| **A. Plugin** | — (skill removed in v3.0.0; use B / C / D for `CLAUDE.md`) | `/saygoal:dec` (namespaced) | auto-updates via marketplace |
 | **B. `CLAUDE.md`** | always-on in system prompt | — | per-project file, manual `curl` |
 | **C. Manual command** | — | `/dec` (short, global) | manual `curl` |
 | **D. `git clone`** | `cp` whole file *or* `sed`-append rules | `/dec` (short, symlinked) | `git pull` updates `/dec`; `CLAUDE.md` is your editable copy |
@@ -202,14 +204,14 @@ The three reminders and the `/dec` command are independent — pick any combinat
 **Option A: Claude Code plugin** — installs only the `/dec` command (namespaced), auto-updates via marketplace. The skill that wrapped the three reminders was removed in v3.0.0 after the empirical A/B test showed it had no measurable effect (see [`EXPERIMENT.md`](./EXPERIMENT.md)). For the always-on rules, use Option B, C, or D below.
 
 ```
-/plugin marketplace add aeopress/andrej-karpathy-skills.TW
-/plugin install andrej-karpathy-skills@karpathy-skills
+/plugin marketplace add aeopress/saygoal.TW
+/plugin install saygoal@saygoal
 ```
 
 **Option B: `CLAUDE.md` per-project** — three reminders always loaded for that project.
 
 ```bash
-curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/andrej-karpathy-skills.TW/main/CLAUDE.md
+curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md
 ```
 
 **Option C: Manual `/dec` command** — short invocation without the plugin namespace. `/dec` is a vendor-agnostic prompt template with no project-specific state, so installing it globally is the only sensible scope.
@@ -217,7 +219,7 @@ curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/andrej-karpathy-ski
 ```bash
 mkdir -p ~/.claude/commands
 curl -o ~/.claude/commands/dec.md \
-  https://raw.githubusercontent.com/aeopress/andrej-karpathy-skills.TW/main/plugin/commands/dec.md
+  https://raw.githubusercontent.com/aeopress/saygoal.TW/main/plugin/commands/dec.md
 ```
 
 **Option D: `git clone` + symlink** — `/dec` auto-updates via `git pull`; `CLAUDE.md` is copied as a starting point you can freely edit per project.
@@ -225,13 +227,13 @@ curl -o ~/.claude/commands/dec.md \
 ```bash
 # 1. Clone once (any location works; example uses ~/.claude/external/)
 mkdir -p ~/.claude/external
-git clone https://github.com/aeopress/andrej-karpathy-skills.TW \
-  ~/.claude/external/andrej-karpathy-skills.TW
+git clone https://github.com/aeopress/saygoal.TW \
+  ~/.claude/external/saygoal.TW
 
 # 2. Symlink the short /dec command globally (the command itself is stateless,
 #    so a symlink that follows upstream is what you want)
 mkdir -p ~/.claude/commands
-ln -sf ~/.claude/external/andrej-karpathy-skills.TW/plugin/commands/dec.md \
+ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md \
   ~/.claude/commands/dec.md
 
 # 3. CLAUDE.md placement — choose ONE.
@@ -239,21 +241,21 @@ ln -sf ~/.claude/external/andrej-karpathy-skills.TW/plugin/commands/dec.md \
 #    then keep editing it yourself.
 
 # (a) Project doesn't have a CLAUDE.md yet — copy the file as a project starting point:
-cp ~/.claude/external/andrej-karpathy-skills.TW/CLAUDE.md ./CLAUDE.md
+cp ~/.claude/external/saygoal.TW/CLAUDE.md ./CLAUDE.md
 
 # (b) Project already has its own CLAUDE.md — append just the three rules:
 sed -n '/^## Stop when confused/,$p' \
-  ~/.claude/external/andrej-karpathy-skills.TW/CLAUDE.md >> ./CLAUDE.md
+  ~/.claude/external/saygoal.TW/CLAUDE.md >> ./CLAUDE.md
 
 # (c) Append to your GLOBAL ~/.claude/CLAUDE.md (rules apply across every project).
 #     Recommended: back up first if you already have your own global customizations,
 #     since your existing rules may interact with these three.
 cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak  # only if it exists
 sed -n '/^## Stop when confused/,$p' \
-  ~/.claude/external/andrej-karpathy-skills.TW/CLAUDE.md >> ~/.claude/CLAUDE.md
+  ~/.claude/external/saygoal.TW/CLAUDE.md >> ~/.claude/CLAUDE.md
 
 # To update /dec and pull future README / EXPERIMENT.md updates:
-cd ~/.claude/external/andrej-karpathy-skills.TW && git pull
+cd ~/.claude/external/saygoal.TW && git pull
 # CLAUDE.md does NOT auto-update — re-run (a)/(b)/(c) only if you want to.
 ```
 
@@ -263,7 +265,7 @@ cd ~/.claude/external/andrej-karpathy-skills.TW && git pull
 
 ```bash
 codex plugin marketplace add .
-codex plugin add andrej-karpathy-skills@karpathy-skills
+codex plugin add saygoal@saygoal
 ```
 
 Use it in Codex as `$dec <request>` or through `/skills`; then paste the generated `/goal "..."` line into Codex's built-in `/goal` when you want the autonomous loop.
@@ -271,10 +273,10 @@ Use it in Codex as `$dec <request>` or through `/skills`; then paste the generat
 ### Recommended combinations
 
 - **Codex users: E** — installs the Codex `dec` skill and leaves every Claude Code path untouched. Pair the generated condition with Codex `/goal`.
-- **A + D** ★ **top pick** — plugin auto-updates `/andrej-karpathy-skills:dec` via marketplace; a separate `git clone` + `ln -sf` gives you the short `/dec` that updates via `git pull`. Both invocations work, the file contents are identical. Best blend of "set and forget" plus "short trigger word", since Claude Code has no native slash-command alias mechanism — having both channels installed is the workaround. Step 3(c) (sed-append CLAUDE.md into `~/.claude/CLAUDE.md`) is optional alongside.
+- **A + D** ★ **top pick** — plugin auto-updates `/saygoal:dec` via marketplace; a separate `git clone` + `ln -sf` gives you the short `/dec` that updates via `git pull`. Both invocations work, the file contents are identical. Best blend of "set and forget" plus "short trigger word", since Claude Code has no native slash-command alias mechanism — having both channels installed is the workaround. Step 3(c) (sed-append CLAUDE.md into `~/.claude/CLAUDE.md`) is optional alongside.
 - **D alone** — clone once, symlink `/dec`, copy CLAUDE.md as a starting point. `git pull` updates `/dec` (and future README / EXPERIMENT.md); CLAUDE.md stays editable per project. No marketplace, short `/dec`. Solid choice if you don't want the plugin path at all.
 - **B + C** (no plugin, no clone) — `CLAUDE.md` always-on + short `/dec`, both via `curl`. Smallest footprint, but updates are manual (re-run the `curl` commands).
-- **A only** — single install command, auto-updates. Since v3.0.0 the plugin is `/dec`-only (no skill), so this combination gives you the slash command without any always-on rules. You'll have to type the full `/andrej-karpathy-skills:dec` every time.
+- **A only** — single install command, auto-updates. Since v3.0.0 the plugin is `/dec`-only (no skill), so this combination gives you the slash command without any always-on rules. You'll have to type the full `/saygoal:dec` every time.
 - **A + B** — plugin for `/dec` (namespaced) + `CLAUDE.md` for always-on rules. Clean separation since v3.0.0: plugin owns `/dec`, `CLAUDE.md` owns rules, no overlap.
 
 ## Using with Cursor
@@ -297,7 +299,7 @@ Full data, scripts, caveats, and the Phase 1 (N=3) result that initially looked 
 
 ## Relationship to upstream
 
-This repository is a Traditional Chinese (Taiwan) localization fork of [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills), updated for the Claude Code Opus 4.7 → 4.8 era. Plugin / marketplace names intentionally match upstream; the README is bilingual (English + 繁體中文).
+This repository is a Traditional Chinese (Taiwan) localization fork of [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills), updated for the Claude Code Opus 4.7 → 4.8 era. The plugin and marketplace are named `saygoal`; the README is bilingual (English + 繁體中文).
 
 ## License
 

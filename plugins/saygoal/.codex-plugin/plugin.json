@@ -1,12 +1,12 @@
 {
-  "name": "andrej-karpathy-skills",
+  "name": "saygoal",
   "version": "4.1.0",
   "description": "Declarative reframing for Codex: turn imperative requests into success criteria, verification commands, non-goals, and ready-to-use /goal conditions.",
   "author": {
     "name": "yelban"
   },
-  "homepage": "https://github.com/aeopress/andrej-karpathy-skills.TW",
-  "repository": "https://github.com/aeopress/andrej-karpathy-skills.TW",
+  "homepage": "https://github.com/aeopress/saygoal.TW",
+  "repository": "https://github.com/aeopress/saygoal.TW",
   "license": "MIT",
   "keywords": [
     "guidelines",
@@ -20,7 +20,7 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Karpathy Skills",
+    "displayName": "saygoal",
     "shortDescription": "Convert requests into verifiable Codex goals",
     "longDescription": "Use the dec skill before implementation to reframe imperative coding requests as declarative contracts: success criteria, verification command, non-goals, and a ready-to-use Codex /goal condition.",
     "developerName": "yelban",
@@ -28,7 +28,7 @@
     "capabilities": [
       "Interactive"
     ],
-    "websiteURL": "https://github.com/aeopress/andrej-karpathy-skills.TW",
+    "websiteURL": "https://github.com/aeopress/saygoal.TW",
     "defaultPrompt": [
       "$dec fix the login flicker on first load",
       "$dec make this endpoint faster",

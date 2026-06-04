@@ -16,4 +16,4 @@ When the user gives a verifiable end state (tests pass, output matches, lint cle
 
 If the request is imperative but an obvious success criterion exists, propose the declarative version first ("I can verify this by Y — okay to drive toward that?") rather than guessing.
 
-Users can invoke this reframing explicitly with the `dec` slash command: `/dec <request>` when installed standalone, or `/andrej-karpathy-skills:dec <request>` when installed via the plugin. See README for install options.
+Users can invoke this reframing explicitly with the `dec` slash command: `/dec <request>` when installed standalone, or `/saygoal:dec <request>` when installed via the plugin. See README for install options.

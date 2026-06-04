@@ -1,6 +1,6 @@
 {
-  "name": "karpathy-skills",
-  "id": "karpathy-skills",
+  "name": "saygoal",
+  "id": "saygoal",
   "owner": {
     "name": "yelban"
   },
@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "andrej-karpathy-skills",
+      "name": "saygoal",
       "source": "./plugin",
       "description": "The /dec slash command — reframes an imperative request as a contract (success criteria + verification command + non-goals + a ready-to-use /goal condition). Pairs with Claude Code's built-in /goal (v2.1.139+) to form the user-side leverage pipeline Karpathy described. Includes a CLAUDE.md you can adopt separately via README install options. Traditional Chinese (Taiwan) localization fork of forrestchang/andrej-karpathy-skills.",
       "version": "4.1.0",

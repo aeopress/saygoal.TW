@@ -1,14 +1,14 @@
 {
-  "name": "karpathy-skills",
+  "name": "saygoal",
   "interface": {
-    "displayName": "Karpathy Skills"
+    "displayName": "saygoal"
   },
   "plugins": [
     {
-      "name": "andrej-karpathy-skills",
+      "name": "saygoal",
       "source": {
         "source": "local",
-        "path": "./plugins/andrej-karpathy-skills"
+        "path": "./plugins/saygoal"
       },
       "policy": {
         "installation": "AVAILABLE",

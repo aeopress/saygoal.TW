@@ -3,7 +3,7 @@ description: Reframe an imperative request as a declarative /goal contract (succ
 ---
 
 <!-- platform: Claude Code (command) · output: single natural-language /goal condition -->
-<!-- Running in Codex? Use the seven-field template in plugins/andrej-karpathy-skills/skills/dec/SKILL.md instead. -->
+<!-- Running in Codex? Use the seven-field template in plugins/saygoal/skills/dec/SKILL.md instead. -->
 
 `/dec` 是 **declarative** 的縮寫。把下方請求轉成宣告式契約。**不要實作。**
 
