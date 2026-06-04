@@ -1,4 +1,5 @@
 .claude/
+.serena/
 .mcp.json
 /cover-image/
 # Raw A/B run artifacts (transcripts/diffs) — local only, reproduce via harness/run-all.sh
