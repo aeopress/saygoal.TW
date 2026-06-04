@@ -4,7 +4,7 @@
 
 ![/dec — Imperative to Declarative](./saygoal.TW.png)
 
-English | [繁體中文（台灣）](./README.zh-TW.md)
+English | [繁體中文（台灣）](./README.zh-TW.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
 > **Source of truth**: [`aeopress/saygoal.TW`](https://github.com/aeopress/saygoal.TW) (formerly maintained at [`yelban/andrej-karpathy-skills.TW`](https://github.com/yelban/andrej-karpathy-skills.TW), now archived)
 

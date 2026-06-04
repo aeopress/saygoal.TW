@@ -4,7 +4,7 @@
 
 ![/dec — 從命令式轉宣告式](./saygoal.TW.png)
 
-[English](./README.md) | 繁體中文（台灣）
+[English](./README.md) | 繁體中文（台灣） | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
 > **主要 repo**：[`aeopress/saygoal.TW`](https://github.com/aeopress/saygoal.TW)（原於 [`yelban/andrej-karpathy-skills.TW`](https://github.com/yelban/andrej-karpathy-skills.TW) 維護，現已封存）
 
