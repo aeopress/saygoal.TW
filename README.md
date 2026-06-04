@@ -145,6 +145,15 @@ Three confirmed values of running `dec` before opening a Codex `/goal`:
 
 Then use `/saygoal:dec <task>`. The built-in `/goal` is always available — no install needed.
 
+> **Upgrading from the old version?** This project was formerly `andrej-karpathy-skills.TW` (marketplace name `karpathy-skills`, old repo now archived). If you installed it before the rename, remove the old marketplace first — otherwise you won't get updates. `marketplace remove` also uninstalls the old plugin:
+>
+> ```
+> /plugin marketplace remove karpathy-skills
+> /plugin marketplace add aeopress/saygoal.TW
+> /plugin install saygoal@saygoal
+> /reload-plugins
+> ```
+
 ### Codex
 
 From the cloned repo root:

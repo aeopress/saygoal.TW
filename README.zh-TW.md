@@ -145,6 +145,15 @@ OpenAI 的 Codex CLI 比 Claude Code 早 11 天，在 [v0.128.0（2026-04-30）]
 
 裝好後用 `/saygoal:dec <任務>`。內建 `/goal` 永遠可用、不需安裝。
 
+> **從舊版升級？** 本專案前身是 `andrej-karpathy-skills.TW`（marketplace 名 `karpathy-skills`，舊 repo 已封存）。若你在改名前裝過，先移除舊 marketplace，否則收不到更新。`marketplace remove` 會一併解除安裝舊 plugin：
+>
+> ```
+> /plugin marketplace remove karpathy-skills
+> /plugin marketplace add aeopress/saygoal.TW
+> /plugin install saygoal@saygoal
+> /reload-plugins
+> ```
+
 ### Codex
 
 clone 本 repo 後、在 root 執行：

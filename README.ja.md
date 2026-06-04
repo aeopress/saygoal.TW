@@ -71,6 +71,15 @@ OpenAI の Codex CLI も自前の `/goal` を持っています（実は Claude 
 
 あとは `/saygoal:dec <やりたいこと>` で使えます。`/goal` は標準搭載なのでインストール不要です。
 
+> **旧バージョンからの移行：** 本プロジェクトは以前 `andrej-karpathy-skills.TW`（marketplace 名 `karpathy-skills`、旧リポジトリはアーカイブ済み）でした。改名前にインストールした場合は、更新を受け取れるよう先に古い marketplace を削除してください。`marketplace remove` で古いプラグインも一緒にアンインストールされます：
+>
+> ```
+> /plugin marketplace remove karpathy-skills
+> /plugin marketplace add aeopress/saygoal.TW
+> /plugin install saygoal@saygoal
+> /reload-plugins
+> ```
+
 ### Codex
 
 clone したリポジトリの中で：
