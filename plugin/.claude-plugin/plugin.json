@@ -1,7 +1,7 @@
 {
   "name": "andrej-karpathy-skills",
   "description": "The /dec slash command — declarative reframing of a request as success criteria + verification + non-goals, pairing with Claude Code's built-in /goal (v2.1.139+). Traditional Chinese (Taiwan) localization fork of forrestchang/andrej-karpathy-skills.",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "author": {
     "name": "yelban"
   },

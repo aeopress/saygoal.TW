@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "The /dec slash command (declarative reframing, pairs with /goal) — Traditional Chinese (Taiwan) localization",
-    "version": "4.0.0"
+    "version": "4.1.0"
   },
   "plugins": [
     {
       "name": "andrej-karpathy-skills",
       "source": "./plugin",
       "description": "The /dec slash command — reframes an imperative request as a contract (success criteria + verification command + non-goals + a ready-to-use /goal condition). Pairs with Claude Code's built-in /goal (v2.1.139+) to form the user-side leverage pipeline Karpathy described. Includes a CLAUDE.md you can adopt separately via README install options. Traditional Chinese (Taiwan) localization fork of forrestchang/andrej-karpathy-skills.",
-      "version": "4.0.0",
+      "version": "4.1.0",
       "author": {
         "name": "yelban"
       },

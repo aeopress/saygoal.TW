@@ -1,33 +1,74 @@
 ---
 name: dec
-description: Convert an imperative coding request into a declarative contract with success criteria, a verification command, non-goals, and a ready-to-use Codex /goal condition. Use before implementation; do not edit files.
+description: Convert an imperative coding request into a declarative Codex /goal contract — outcome, verification, constraints, boundaries, iteration policy, stop and pause conditions. Use before implementation; do not edit files.
 ---
+
+<!-- platform: Codex (skill) · output: seven-field /goal template -->
+<!-- Running in Claude Code? Use plugin/commands/dec.md instead, which outputs a single natural-language /goal condition. -->
 
 # Dec Skill
 
-`dec` is short for declarative. Convert the user's request into a declarative contract. Do not implement.
+`dec` is short for **declarative**. Convert the user's request into a Codex `/goal` contract. **Do not implement.**
 
-Use this skill when the user invokes `$dec`, selects the `dec` skill, or asks to turn a coding task into success criteria for Codex `/goal`.
+Use this skill when the user invokes `$dec`, selects the `dec` skill, or asks to turn a coding task into a Codex `/goal`.
 
-Output four blocks:
+---
 
-1. **成功條件 (Success criteria)**: verifiable end state, such as tests passing, output matching, a performance threshold, lint clean, or a concrete manual check when no command exists.
-2. **驗證指令 (Verification command)**: a specific runnable command or check, such as `bun test foo.spec.ts`, `npx playwright test login.spec.ts`, `scripts/bench.sh`, or `manual check: ...`.
-3. **非目標 (Non-goals)**: explicit scope boundaries for what this task must not change.
-4. **Ready-to-use Codex `/goal` condition**: combine #1 and #3 into one Codex `/goal` string. Join compound conditions with `AND`.
+## Not applicable — check first
 
-Example:
-
-```text
-/goal "npx playwright test login.spec.ts passes AND login component file remains unchanged from baseline"
-```
-
-After outputting the four blocks, wait for the user to confirm. Confirmation can mean implementing directly from the contract, or using the generated `/goal` condition in Codex.
-
-If the task is subjective, such as UI taste, wording, naming, or visual polish, or if it is too small, such as a typo or one-line rename, reply:
+If the task is **subjective** (UI taste, copy, naming, visual polish), **too small** (typo, one-line rename), or has **no verifiable end state**, reply:
 
 ```text
 不適用，建議直接做
 ```
 
-Do not force a declarative contract when the task has no meaningful verifiable end state.
+Do not force a contract when there is no meaningful verifiable end state.
+
+---
+
+## Output: seven-field Codex `/goal` template
+
+Fill all seven fields. Omit a field only if genuinely not applicable, and say why — do not pad it.
+
+```text
+/goal [Outcome — one sentence stating the observable end state, not an action].
+Verification: [command / artifact / evidence that proves completion; runnable or inspectable by Codex].
+Constraints: [what must not change — behavior, public APIs, test assertions].
+Boundaries: [allowed write paths / forbidden paths; external systems read-only or draft-only].
+Iteration policy: make one focused change, rerun verification after each change, log each attempt result before the next.
+Stop when: [verification exits 0 / artifact exists / evidence proves the outcome].
+Pause if: [blocked / needs human decision / destructive operation / N consecutive failures / conflicting docs].
+```
+
+The **Iteration policy** above is a sensible default — keep it verbatim unless the user gives a specific strategy (e.g. "try at most 3 approaches before pausing"). The user does not need to supply it.
+
+---
+
+## Internal rule: anti-speculation auto-fill (apply silently, do not echo this table)
+
+Merge the matching constraint into the `Constraints:` field based on task keywords. Respect context: if the target is a UI element, CSS class, or scratch object, do **not** trigger the data-layer constraint.
+
+| Task keyword | Auto-add to Constraints |
+|---|---|
+| performance / optimize / latency / benchmark | without removing any existing feature or test coverage |
+| refactor / migrate / restructure | without changing observable behavior; existing tests must still pass |
+| test / CI | without skipping, commenting out, or weakening any existing assertion |
+| coverage | without adding trivially-true assertions that inflate the number |
+| API / webhook / email / send / deploy / publish | in read-only or draft mode; do not send, deploy, or publish without explicit confirmation |
+| delete / drop / remove (data, persistence) | pause before any irreversible deletion and surface the target first |
+| auth / token / permission | do not change the authentication flow or token validation logic |
+| "later" / "future" / "v2" / "could consider" (tentative phrasing) | treat as a non-goal unless success criteria explicitly require it |
+
+---
+
+## Pause-if examples
+
+```text
+Pause if: the relevant file or test cannot be found; a required credential is missing；
+a step would delete or overwrite data not created by this session; documentation contradicts the
+task; 3 consecutive verifications fail without a new approach.
+```
+
+---
+
+After output, wait for the user to confirm. On confirmation, the user pastes the generated `/goal` block into Codex CLI.

@@ -72,7 +72,7 @@ Two slash commands map onto Karpathy's two verbs — "give it success criteria" 
 /dec fix the login flicker on first load
 ```
 
-Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"), a verification command, and explicit non-goals — plus a ready-to-use `/goal` condition string that compiles the success criteria and non-goals into a single AND-joined expression you can paste directly. If the task is too subjective or too small, it replies "not applicable — just do it" instead of forcing a conversion. Good for one-shot prompts where you want the declarative discipline without committing to autonomous looping (or when you're on Cursor / an older Claude Code without `/goal`).
+Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"), a verification command worded so Claude must *run it and paste the output*, and on-demand boundaries (what must not change / writable paths / external-system limits) — plus a ready-to-use `/goal` condition in the natural-language `[work] until [end state] without [constraints] or stop after 20 turns` shape you can paste directly. If the task is too subjective or too small, it replies "not applicable — just do it" instead of forcing a conversion. Good for one-shot prompts where you want the declarative discipline without committing to autonomous looping (or when you're on Cursor / an older Claude Code without `/goal`).
 
 #### `/dec` as the boundary-setter for `/goal`
 
@@ -84,21 +84,22 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
    The evaluator answers always-yes or always-no — the loop never converges.
 
 ✅ /dec fix the login flicker on first load
-   →  Success:   Playwright screenshot diff < 2px across 10 runs
-      Verify:    npx playwright test login-flicker.spec.ts
-      Non-goals: do not refactor the login component; do not touch auth
+   →  Success:    Playwright screenshot diff < 2px across 10 runs
+      Verify:     run `npx playwright test login-flicker.spec.ts` and paste output showing 0 failures
+      Boundaries: writes limited to the login component; don't change the auth flow
 
-✅ /goal "npx playwright test login-flicker.spec.ts passes AND
-          the login component file is unchanged from baseline"
-   Haiku reads pytest output from the transcript and judges deterministically.
+✅ /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
+          without changing the auth flow or any file outside the login component
+          or stop after 20 turns"
+   Haiku reads the pasted test output from the transcript and judges deterministically.
    The loop actually converges.
 ```
 
-`/dec` enforces three boundaries that `/goal` alone cannot:
+`/dec` enforces three things that `/goal` alone cannot:
 
 1. **Machine-checkable success conditions** — "diff < 2px", "10 passed", "p95 < X ms" map cleanly to evaluator yes/no.
 2. **A verification command embedded in the contract** — forces Claude to actually run the check, not statically reason "this should work now". (Patching-without-running was a real failure mode in our T4 declarative-loop test.)
-3. **Explicit non-goals** — `/goal`'s condition string is compound: `"X passes AND test files unchanged AND no new files in src/legacy/"`. The evaluator checks each clause.
+3. **Structured boundaries (five facets, on demand)** — what must not change, writable paths, external-system limits, pause-if, and a turn cap. For Claude they compile into the condition (`"… without test files changed and no new files in src/legacy/, or stop after 20 turns"`); pause-if is listed separately and is better as a Stop hook, since the evaluator can't judge it.
 
 #### The full pipeline
 
@@ -117,20 +118,20 @@ OpenAI's Codex CLI shipped its own `/goal` in [v0.128.0 on 2026-04-30](https://d
 
 — and asserts **"Codex should know what 'done' means before it starts."** This is exactly the contract `/dec` writes:
 
-| Codex docs requirement | `/dec` output block |
+| Codex docs requirement | `/dec` output (Codex seven-field) |
 |---|---|
-| what Codex should achieve | **Success criteria** |
-| what it shouldn't change | **Non-goals** |
-| how it should validate progress | **Verification command** |
-| when it should stop | success + non-goals (the contract *is* the stop condition) |
+| what Codex should achieve | **Outcome** |
+| what it shouldn't change | **Constraints + Boundaries** |
+| how it should validate progress | **Verification** |
+| when it should stop | **Stop when + Pause if** |
 
 Three confirmed values of running `dec` before opening a Codex `/goal`:
 
-1. **You don't have to remember Codex's four-part checklist** — `/dec`'s prompt template enforces all four blocks every time.
-2. **`/dec` requires each block to be measurable** — the verbatim text in [`plugin/commands/dec.md`](./plugin/commands/dec.md) is "verifiable end state (tests passing / output match / performance threshold / lint clean)". Codex docs say goals should be testable but don't ship a template that enforces this on the user side.
+1. **You don't have to remember Codex's checklist** — `/dec`'s template fills all seven Codex fields (outcome, verification, constraints, boundaries, iteration policy, stop, pause) every time.
+2. **`/dec` requires each field to be measurable** — [`plugin/commands/dec.md`](./plugin/commands/dec.md) demands "a verifiable end state the `/goal` evaluator can find in the transcript: exit codes, output match, a quantified threshold". Codex docs say goals should be testable but don't ship a template that enforces this on the user side.
 3. **`/dec`'s "not applicable — just do it" short-circuit for subjective tasks** (UI tweaks, prose, single-line renames) has no documented equivalent in Codex's `/goal`. Opening `/goal` on a subjective task is exactly what Codex docs warn against: **"Avoid using a goal for a loose list of unrelated work."**
 
-**Using `dec` with Codex**: this repo ships a Codex plugin at [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills), with a `dec` skill that mirrors the Claude Code command. In Codex CLI, invoke it as `$dec <request>` or select it through `/skills`; the generated #4 block is ready to paste into Codex `/goal "..."`. This does not change Claude Code's `/dec`: the original command remains at [`plugin/commands/dec.md`](./plugin/commands/dec.md), still using Claude's `$ARGUMENTS` template.
+**Using `dec` with Codex**: this repo ships a Codex plugin at [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills), with a `dec` skill that outputs Codex's seven-field `/goal` template (the Claude command outputs a single natural-language condition instead — each side emits its host's native format). In Codex CLI, invoke it as `$dec <request>` or select it through `/skills`; the generated `/goal` block is ready to paste into Codex `/goal "..."`. This does not change Claude Code's `/dec`: the original command remains at [`plugin/commands/dec.md`](./plugin/commands/dec.md), still using Claude's `$ARGUMENTS` template.
 
 > **Caveat — design claim, not empirical.** We have **not** run a controlled benchmark of `/dec` + Codex `/goal`. The mapping above is derived by reading `/dec`'s prompt template against Codex's [published goal-writing guidance](https://developers.openai.com/codex/use-cases/follow-goals). The N=40 A/B test in [`EXPERIMENT.md`](./EXPERIMENT.md) measured CLAUDE.md effects on Opus 4.7, not `/dec` itself.
 

@@ -72,7 +72,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 /dec 修登入頁第一次載入時的閃爍
 ```
 
-回覆會給你成功條件（例如「Playwright 截圖比對 10 次、位移 < 2px」）、驗證指令、明確非目標——**外加一條可直接複製貼上的 `/goal` condition 字串**（用 AND 把成功條件與非目標串成複合條件）。若任務太主觀或太小，會回「不適用，建議直接做」、不硬轉換。適合單一 prompt 套用宣告式紀律、不需要自主迭代的場合（或在 Cursor / 舊版 Claude Code 沒有 `/goal` 時）。
+回覆會給你成功條件（例如「Playwright 截圖比對 10 次、位移 < 2px」）、一條措辭成「Claude 必須實際執行並貼出輸出」的驗證指令、以及按需出現的邊界（不可改動 / 可寫路徑 / 外部系統限制）——**外加一條可直接複製貼上的 `/goal` condition**（自然語言的 `[做什麼] until [端狀態] without [約束] or stop after 20 turns` 句式）。若任務太主觀或太小，會回「不適用，建議直接做」、不硬轉換。適合單一 prompt 套用宣告式紀律、不需要自主迭代的場合（或在 Cursor / 舊版 Claude Code 沒有 `/goal` 時）。
 
 #### `/dec` 當作 `/goal` 的「邊界設定器」
 
@@ -85,20 +85,21 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 ✅ /dec 修登入頁第一次載入時的閃爍
    →  成功條件：Playwright 截圖比對 10 次、位移 < 2px
-       驗證指令：npx playwright test login-flicker.spec.ts
-       非目標：不重構登入元件、不動 auth 流程
+       驗證指令：執行 `npx playwright test login-flicker.spec.ts` 並貼出顯示 0 failures 的輸出
+       邊界：寫入限定在登入元件；不動 auth 流程
 
-✅ /goal "npx playwright test login-flicker.spec.ts passes AND
-          登入元件檔案路徑與 baseline 一致"
-   Haiku 讀 transcript 內的 pytest 輸出能精準判定。
+✅ /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
+          without changing the auth flow or any file outside the login component
+          or stop after 20 turns"
+   Haiku 讀 transcript 內貼出的測試輸出能精準判定。
    Loop 真的會收斂。
 ```
 
-`/dec` 強制設定 `/goal` 自己給不出的三條邊界：
+`/dec` 強制設定 `/goal` 自己給不出的三件事：
 
 1. **可機器判定的成功條件**——「diff < 2px」「10 passed」「p95 < X ms」evaluator 看 transcript 就能 yes/no
 2. **嵌進契約的驗證指令**——強迫 Claude 真的去跑檢查、而不是靜態推理然後回報「應該可以了」（這正是我們 T4 declarative-loop 測試看到的失敗模式）
-3. **明確非目標**——`/goal` 的 condition 可以是複合的：「X passes AND test files unchanged AND no new files in src/legacy/」evaluator 一條一條檢
+3. **結構化邊界（五面、按需）**——不可改動、可寫路徑、外部系統限制、何時暫停、回合上限。對 Claude 這些會編進 condition（「… without test files changed and no new files in src/legacy/, or stop after 20 turns」）；其中「何時暫停」單獨列出、建議用 Stop hook，因為 evaluator 判不了它。
 
 #### 完整 pipeline
 
@@ -117,20 +118,20 @@ OpenAI 的 Codex CLI 比 Claude Code 早 11 天，在 [v0.128.0（2026-04-30）]
 
 並明確指出 **"Codex should know what 'done' means before it starts."** 這正是 `/dec` 寫出來的契約：
 
-| Codex docs 要求 | `/dec` 對應輸出 |
+| Codex docs 要求 | `/dec` 對應輸出（Codex 七欄位） |
 |---|---|
-| what Codex should achieve | **成功條件** |
-| what it shouldn't change | **非目標** |
-| how it should validate progress | **驗證指令** |
-| when it should stop | 成功條件 + 非目標（契約本身**就是**停止條件） |
+| what Codex should achieve | **Outcome** |
+| what it shouldn't change | **Constraints + Boundaries** |
+| how it should validate progress | **Verification** |
+| when it should stop | **Stop when + Pause if** |
 
 開 Codex `/goal` 之前先跑 `dec` 的三個 confirmed value：
 
-1. **你不用記 Codex 那條四點 checklist**——`/dec` 的 prompt template 每次都強制產出四塊。
-2. **`/dec` 要求每塊都可量測**——[`plugin/commands/dec.md`](./plugin/commands/dec.md) prompt 原文寫「可驗證的端狀態（測試通過 / 輸出比對 / 效能門檻 / lint clean）」。Codex docs 雖然主張 goal 應該可測試，但沒附樣板在 user 端強制執行這件事。
+1. **你不用記 Codex 那條 checklist**——`/dec` 的 template 每次都把七個 Codex 欄位（outcome、verification、constraints、boundaries、iteration policy、stop、pause）填滿。
+2. **`/dec` 要求每個欄位都可量測**——[`plugin/commands/dec.md`](./plugin/commands/dec.md) 要求「可驗證的端狀態，且必須是 `/goal` 的 evaluator 在 transcript 裡找得到的證據：指令退出碼、輸出比對、可量化門檻」。Codex docs 雖然主張 goal 應該可測試，但沒附樣板在 user 端強制執行這件事。
 3. **`/dec` 對主觀任務的「不適用，建議直接做」short-circuit**（UI 微調、文案、單行 rename）—— Codex `/goal` 沒有 documented 等價功能。對主觀任務開 `/goal` 正是 Codex docs 警告的：**"Avoid using a goal for a loose list of unrelated work."**
 
-**`dec` 與 Codex 搭配使用**：本倉庫現在也提供 Codex plugin，位置在 [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills)，裡面有一個對齊 Claude Code command 的 `dec` skill。在 Codex CLI 可用 `$dec <request>` 叫用，或透過 `/skills` 選取；它輸出的第 #4 塊可以直接貼到 Codex `/goal "..."`。這不會改變 Claude Code 的 `/dec`：原本的 command 仍在 [`plugin/commands/dec.md`](./plugin/commands/dec.md)，也仍然使用 Claude 的 `$ARGUMENTS` template。
+**`dec` 與 Codex 搭配使用**：本倉庫現在也提供 Codex plugin，位置在 [`plugins/andrej-karpathy-skills`](./plugins/andrej-karpathy-skills)，裡面有一個 `dec` skill，輸出 Codex 的七欄位 `/goal` 模板（Claude command 則輸出單一條自然語言 condition——兩邊各自產出宿主的原生格式）。在 Codex CLI 可用 `$dec <request>` 叫用，或透過 `/skills` 選取；它輸出的 `/goal` 區塊可以直接貼到 Codex `/goal "..."`。這不會改變 Claude Code 的 `/dec`：原本的 command 仍在 [`plugin/commands/dec.md`](./plugin/commands/dec.md)，也仍然使用 Claude 的 `$ARGUMENTS` template。
 
 > **Caveat——這是設計層面的聲明、不是實證。** 我們**沒有**對 `/dec` + Codex `/goal` 跑控制組實驗。上面的對應是讀 `/dec` 的 prompt template 對照 Codex [published goal-writing guidance](https://developers.openai.com/codex/use-cases/follow-goals) 推得。[`EXPERIMENT.md`](./EXPERIMENT.md) 那個 N=40 A/B 測的是 CLAUDE.md 對 Opus 4.7 的效應、不是 `/dec` 本身。
 
