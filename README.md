@@ -190,69 +190,11 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 ## Why the rules file isn't the leverage — the receipts
 
-`saygoal` also ships a three-line `CLAUDE.md` (derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls). It's optional, and an A/B test says **the rules file barely moves the model** — the leverage is `/dec` + `/goal`. This section is the evidence; treat it as background.
+`saygoal` also ships a three-line `CLAUDE.md` (derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls). It's optional — and an A/B test says the rules file barely moves the model.
 
-### Status (Opus 4.8 era · May 2026)
+On Opus 4.8, bug-catching jumped **33% → 90%**, yet the three `CLAUDE.md` variants (v1 / v2 / none) stayed **statistically flat**: the model has already internalized the discipline, so the only leverage left is user-side — that's `/dec`. Most of v1's rules were already verbatim in Claude Code's system prompt; the one genuinely new line ("every changed line traces to the request") is what v2 kept.
 
-Anthropic's own Claude Code prompt evolved the same way this skill did. v1→v2 stripped the explicit guardrails the model had internalized (66 lines → 19). Opus 4.7 had already baked most of them into a verbose system prompt; **Opus 4.8 (2026-05-28) went further and ships a *lean* prompt that drops them entirely** — they now live in post-training, not prompt text.
-
-We re-ran our A/B on 4.8 (T1, N=10): bug-catching jumped **33% → 90%** while the three `CLAUDE.md` variants (v1 / v2 / none) stayed statistically flat. The model absorbed the discipline; the remaining leverage is user-side — `/dec` + `/goal`. **This version intentionally keeps only what the system prompt still does not cover, and reframes the "leverage" point as a user-side prompting guide.** The earlier full-rules version lives in [`archived/v1/`](./archived/v1/) for reference.
-
-### What the assistant gets — three reminders
-
-Three reminders, copied verbatim from [`CLAUDE.md`](./CLAUDE.md). Kept because they're cheap and may help on different models or longer contexts, but the empirical marginal effect on Opus 4.7 is small (see [`EXPERIMENT.md`](./EXPERIMENT.md)).
-
-1. **Stop when confused** — if a request is ambiguous, name what is unclear and ask; do not pick an interpretation silently.
-2. **Every changed line should trace to the request** — re-read your diff before reporting done; if a line does not serve the user's stated goal, remove it.
-3. **Loop on declarative goals** — when a verifiable end state exists, drive toward it autonomously.
-
-That is the entire instruction file. The other pitfalls Karpathy named (overcomplication, drive-by refactors, speculative features, dead-code creep, removing comments the model "doesn't like") are already addressed by Claude Code's default system prompt; duplicating them only dilutes signal.
-
-### Which v1 rules ended up where
-
-[Upstream v1](./archived/v1/CLAUDE.md) had 4 principles × 4–6 sub-rules each (66 lines total). v2 is 19 lines. Below is the verbatim mapping for every rule that we could confirm against the Opus 4.7 system prompt — that is, every cell in the third column is a direct quote we observed in a live Claude Code session, not a paraphrase.[^sysprompt]
-
-> **Update — Opus 4.8 (2026-05-29):** 4.8 shipped a **lean system prompt** as the default, and **all eight quotes in the third column below are gone from it** — the verbose `# Doing tasks` / `# Executing actions with care` sections were compressed into a 5-bullet `# Harness` block. This does **not** reverse the argument — and we re-ran the experiment on 4.8 to check. On T1 (N=10, fixed automated scorer), "both bugs fixed" jumped **33% → 90% pooled** (Fisher p=1.1e-5, ~6.7× fewer misses, matching Anthropic's "~4x less likely to let a code flaw pass"), while the three cells (v1 65-line / v2 19-line / no `CLAUDE.md`) stayed **statistically flat** (all pairwise p ≥ 0.47). So the guardrails moved from the *prompt* into *post-training* — not lost — and `CLAUDE.md` flavor still shows no measurable effect. Restating now-internalized rules is still wasted signal, and a leaner prompt makes a 19-line file even easier to keep clean. Full 4.7→4.8 diff: [`2026-05-29-opus-4.8-cli.md`](./archived/observed-system-prompts/2026-05-29-opus-4.8-cli.md); re-run data + caveats: [`EXPERIMENT.md`](./EXPERIMENT.md) (§ Opus 4.8 re-run). The table below is therefore **historically accurate for 4.7** (independently verified) and annotated, not silently implied to match the current default prompt.
-
-| v1 rule | v2 disposition | Verbatim line in Opus 4.7 system prompt |
-|---|---|---|
-| **Simplicity First** — No features beyond what was asked | Removed | "Don't add features, refactor, or introduce abstractions beyond what the task requires" |
-| **Simplicity First** — No abstractions for single-use code | Removed | "Three similar lines is better than a premature abstraction" |
-| **Simplicity First** — No flexibility/configurability that wasn't requested | Removed | "Don't design for hypothetical future requirements" |
-| **Simplicity First** — No error handling for impossible scenarios | Removed | "Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries" |
-| **Surgical Changes** — Don't 'improve' adjacent code | Removed | "A bug fix doesn't need surrounding cleanup; a one-shot operation doesn't need a helper" |
-| **Surgical Changes** — Don't remove pre-existing dead code unless asked | Removed | "Avoid backwards-compatibility hacks like renaming unused _vars... If you are certain that something is unused, you can delete it completely" |
-| **Surgical Changes** — Every changed line should trace to user's request | **Kept** (renamed) | *(no equivalent — this is v2's genuine addition)* |
-| **Think Before Coding** — Whole principle (4 sub-rules) | **3 removed, 1 kept as Stop when confused** | *(no verbatim coverage — see note below)* |
-| **Goal-Driven Execution** — TDD examples + multi-step plan format | **Rewritten** as Loop on declarative goals | *(no equivalent — this is Karpathy's actual point, kept but reframed)* |
-
-About **Think Before Coding** — we removed three of its four sub-rules ("state assumptions explicitly", "present multiple interpretations", "push back when warranted") but they are *not* verbatim covered by the system prompt. The closest passage is `"For exploratory questions, respond in 2–3 sentences with a recommendation and the main tradeoff. Present it as something the user can redirect"`, which addresses the same intent for exploratory questions but is **not** a full substitute. We dropped them anyway because the [A/B test](./EXPERIMENT.md) found that adding the full four-rule version did not reliably trigger "stop and ask" behavior (0/30 runs asked clarification on T1). The single rule we kept — "if something is unclear, stop and ask" — is the one with the cleanest action (stop), not coverage-by-deletion. **This is a judgment call, not a verbatim-overlap claim.**
-
-#### Three concrete benefits of the deletions
-
-1. **Signal de-dilution.** Restating system-prompt content in `CLAUDE.md` re-weights instructions the model already follows; the new rules you add have to compete for attention against duplicates. With v2, every line in `CLAUDE.md` says something the system prompt does **not**.
-2. **Fewer false triggers on non-code work.** v1's TDD-first examples ("write tests for invalid inputs, then make them pass") were hard-coded for testable contexts. UI tweaks, prose, and config edits have no test to write — and the v1 framing pushed the model to invent verification criteria where none belonged. v2's `## Loop on declarative goals` defers to the user instead of prescribing a format.
-3. **Empirical backing for "smaller is fine."** The [N=40 A/B test](./EXPERIMENT.md) found no statistically significant difference between v1 (65 lines), v2 (19 lines), and no `CLAUDE.md` at all on Opus 4.7. Deletion does not measurably hurt — and shorter files are cheaper to review when they conflict with project-specific rules.
-
-#### Policy / mechanism separation
-
-Of Karpathy's named pitfalls, the one v2 did *not* delete is the most important: **`Loop on declarative goals`**. The reason it survived is that the system prompt does not cover it — but more importantly, the leverage here is **user-side**, not assistant-side. That's why saygoal ships `/dec`: a slash command that rewrites imperative requests into declarative contracts, paired with the built-in `/goal` evaluator (see [the pipeline](#dec--goal--the-pipeline) above).
-
-This "policy / mechanism separation" — the LLM handles the *what* (high-level intent), tooling handles the *how* (deterministic execution) — has converged into a research consensus in 2025–2026 ([arxiv 2510.04607](https://arxiv.org/html/2510.04607v2), [PDL arxiv 2410.19135](https://arxiv.org/pdf/2410.19135)). `/dec` is the prompt-engineering surface for that pattern.
-
-### What an A/B test actually showed
-
-The verbatim mapping table above is the *why-it-shrank* argument — most of v1 was already in the system prompt. But that argument is a judgment, not a measurement. So in May 2026 we ran a small empirical A/B:
-
-- 3 cells: no CLAUDE.md / v1 upstream (65 lines) / v2 ours (19 lines)
-- 4 toy tasks targeting Karpathy's named pitfalls + N=10 follow-up on the most discriminating task (T1 ambiguous-bug)
-- Opus 4.7 subject, Sonnet 4.6 blind judge
-
-**Result: no statistically significant difference between any cells.** On T1 with N=10 per cell, all three landed at 7/10 correct (Fisher exact p = 1.000 pairwise). 0/30 runs asked clarification before editing — none of the rule sets reliably triggered "stop and ask" behavior on a task that looked superficially singular.
-
-The honest takeaway: at the toy-task scale we tested, the marginal effect of CLAUDE.md (any flavor) on Opus 4.7's behavior is too small to measure with N=10. **Use whichever flavor you prefer; the user-side declarative framing (`/dec`) likely matters more than the rules file itself.**
-
-Full data, scripts, caveats, and the Phase 1 (N=3) result that initially looked like "v1 wins" before Phase 2 (N=10) flattened it: [`EXPERIMENT.md`](./EXPERIMENT.md).
+Full data, the v1→v2 verbatim mapping, and caveats live in [`EXPERIMENT.md`](./EXPERIMENT.md).
 
 ## Relationship to upstream
 
@@ -263,5 +205,3 @@ This repository is a Traditional Chinese (Taiwan) localization fork of [`forrest
 [MIT](./LICENSE) — Copyright © 2026 yelban.
 
 See [Relationship to upstream](#relationship-to-upstream) for attribution.
-
-[^sysprompt]: Quoted lines verified against the Opus 4.7 system prompt observed in Claude Code CLI sessions on 2026-05-28. The full prose system prompt as observed is archived at [`archived/observed-system-prompts/2026-05-28-opus-4.7-cli.md`](./archived/observed-system-prompts/2026-05-28-opus-4.7-cli.md) — the file documents how the built-in prompt is positionally separable from `CLAUDE.md` injection in the session structure, and includes a cross-reference mapping every quote in the table above to its exact section in the snapshot. **Opus 4.8 (2026-05-29) replaced this with a lean prompt that drops all eight quotes** — see [`2026-05-29-opus-4.8-cli.md`](./archived/observed-system-prompts/2026-05-29-opus-4.8-cli.md) for the 4.7→4.8 diff. Claude Code's system prompt is injected at runtime and not publicly documented by Anthropic; wording changes across CLI / model updates (4.7→4.8 being a large one).

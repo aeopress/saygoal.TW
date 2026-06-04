@@ -190,69 +190,11 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 ## 為什麼規則檔不是重點 — 實證
 
-`saygoal` 也附一份三行的 `CLAUDE.md`（內容衍生自 [Andrej Karpathy 對 LLM 編碼陷阱的觀察](https://x.com/karpathy/status/2015883857489522876)）。它是可選的，而 A/B 實證說**規則檔幾乎不動模型**——槓桿在 `/dec` + `/goal`。本節是證據，當背景看即可。
+`saygoal` 也附一份三行的 `CLAUDE.md`（內容衍生自 [Andrej Karpathy 對 LLM 編碼陷阱的觀察](https://x.com/karpathy/status/2015883857489522876)）。它是可選的——而 A/B 實證顯示規則檔幾乎不動模型。
 
-### 現況（Opus 4.8 時代 · 2026 年 5 月）
+在 Opus 4.8 上，抓 bug 率從 **33% 躍升到 90%**，但三組 `CLAUDE.md`（v1／v2／無）**統計上持平**：模型早就把這套紀律內化了，剩下的槓桿只在使用者端——也就是 `/dec`。v1 的規則大多早已逐字出現在 Claude Code 的系統提示詞裡；唯一真正新增的那條（「每一行改動都要對應到請求」）才是 v2 保留下來的。
 
-Anthropic 自己的 Claude Code 提示詞、演進方向跟這個 skill 一模一樣。v1→v2 拿掉了模型已內化的 explicit guardrail（66 行 → 19 行）。Opus 4.7 已經把大部分 guardrail 塞進一份冗長的系統提示詞；**Opus 4.8（2026-05-28）更進一步、改用 *lean* prompt 把它們整段拿掉**——這些規則現在活在 post-training（model weights）、不在 prompt 文字裡。
-
-我們在 4.8 上重跑了 A/B（T1、N=10）：抓 bug 率從 **33% 躍升到 90%**、而三組 `CLAUDE.md`（v1／v2／無）統計上仍持平。模型把紀律吸收進去了；剩下的槓桿在使用者端——`/dec` + `/goal`。**新版刻意只保留系統提示詞還未涵蓋的部分。** 舊版完整四原則保留在 [`archived/v1/`](./archived/v1/) 供參考。
-
-### 給 LLM 看的三條 reminder
-
-三條 reminder，與 [`CLAUDE.md`](./CLAUDE.md) 完全一致。保留是因為成本低、在不同模型或更長的上下文中可能仍有用；但在 Opus 4.7 上實證邊際效應不顯著（見 [`EXPERIMENT.md`](./EXPERIMENT.md)）。
-
-1. **困惑時停下** — 請求語意不清時，明確指出哪裡不清楚並提問；不要默默挑一個解讀就動手。
-2. **每一行改動都要對應到請求** — 回報完成前，重看自己的 diff；任何沒有直接服務使用者目標的行就刪掉。
-3. **以宣告式目標跑 loop** — 當存在可驗證的終態時，自主驅動直到達成。
-
-整個指令檔就這樣。Karpathy 列出的其他陷阱（過度複雜化、順手重構、推測性功能、死碼累積、刪掉模型「看不順眼」的註解⋯⋯）都已經被 Claude Code 預設系統提示詞涵蓋；在這裡重述只會稀釋訊號。
-
-### 哪些 v1 規則被歸到哪裡
-
-[上游 v1](./archived/v1/CLAUDE.md) 有 4 大原則 × 每個 4–6 條 sub-rule（共 66 行）。v2 只剩 19 行。下表是**逐字驗證**過的對照——第三欄每一格都是我們在實際 Claude Code session 直接觀察到的系統提示詞原文，不是改寫過的近似句。[^sysprompt]
-
-> **更新——Opus 4.8（2026-05-29）：** 4.8 把 **lean system prompt** 設為 default、下表第三欄那**八條 quote 在 4.8 全部消失了**——4.7 的 `# Doing tasks` / `# Executing actions with care` 大段被壓縮成 5 條 bullet 的 `# Harness`。這**不推翻**論點——我們在 4.8 上重跑了實驗確認。T1（N=10、固定 automated scorer）上「兩 bug 都修」從 **33% 躍升到 90%**（Fisher p=1.1e-5、少漏約 6.7 倍、吻合 Anthropic「漏放瑕疵機率低約 4 倍」），而三組（v1 65 行／v2 19 行／無 `CLAUDE.md`）**統計上仍持平**（兩兩 p ≥ 0.47）。也就是 guardrail 從 *prompt* 移到了 *post-training（model weights）*、不是消失——CLAUDE.md flavor 依然測不出效應。重述模型已內化的規則仍是浪費訊號、而 prompt 越乾淨、19 行的檔案越容易保持精準。完整 4.7→4.8 diff 見 [`2026-05-29-opus-4.8-cli.md`](./archived/observed-system-prompts/2026-05-29-opus-4.8-cli.md)；重跑資料與 caveat 見 [`EXPERIMENT.md`](./EXPERIMENT.md)（§ Opus 4.8 re-run）。下表因此是**對 4.7 歷史準確**（已獨立驗證）、並加註說明、不是默示它符合當前 default prompt。
-
-| v1 條文 | v2 處置 | 系統提示詞逐字 quote |
-|---|---|---|
-| **Simplicity First** — 不加超出請求範圍的功能 | 刪 | "Don't add features, refactor, or introduce abstractions beyond what the task requires" |
-| **Simplicity First** — 單次使用的程式碼不抽象 | 刪 | "Three similar lines is better than a premature abstraction" |
-| **Simplicity First** — 不加沒人要的 flexibility / configurability | 刪 | "Don't design for hypothetical future requirements" |
-| **Simplicity First** — 不為不可能發生的場景寫錯誤處理 | 刪 | "Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries" |
-| **Surgical Changes** — 不順手改鄰近程式碼 | 刪 | "A bug fix doesn't need surrounding cleanup; a one-shot operation doesn't need a helper" |
-| **Surgical Changes** — 沒人要你改前不要刪掉既有死碼 | 刪 | "Avoid backwards-compatibility hacks like renaming unused _vars... If you are certain that something is unused, you can delete it completely" |
-| **Surgical Changes** — 每一行改動都要對應到請求 | **保留**（重新命名） | *（無對應——這條是 v2 真正補強的）* |
-| **Think Before Coding** — 整個原則（4 條 sub-rule） | **3 刪 1 留**（留下的改名 Stop when confused） | *（無逐字對應——見下方說明）* |
-| **Goal-Driven Execution** — TDD 範例 + 多步計畫格式 | **改寫**為 Loop on declarative goals | *（無對應——這是 Karpathy 真正的洞見、留下但重新詮釋）* |
-
-關於 **Think Before Coding** —— 我們刪了它的三條 sub-rule（「明確說出假設」「列出多種解讀」「合理時要 push back」），但這三條**並非**逐字被系統提示詞涵蓋。最接近的段落是 `"For exploratory questions, respond in 2–3 sentences with a recommendation and the main tradeoff. Present it as something the user can redirect"`——意圖相近、但**不是完整替代**。我們還是刪了，因為 [A/B 實證](./EXPERIMENT.md) 顯示放入完整四條版本也沒能可靠觸發「停下來問」（T1 共 30 runs 中 0 次在動手前問澄清）。唯一保留的「不確定時停下來問」是因為它的動作最乾淨（直接停），不是因為其他三條被覆蓋。**這格是設計判斷、不是「逐字重複所以刪」的主張。**
-
-#### 刪除的三個具體好處
-
-1. **訊號去稀釋**。在 `CLAUDE.md` 重述系統提示詞已有的內容，會給模型已經會做的事再加一份權重；新加進來的規則就要跟這些重複條目搶注意力。v2 的每一行都在說系統提示詞**沒說**的事。
-2. **降低非編碼任務的誤觸**。v1 的 TDD-first 範例（「為無效輸入寫測試、再讓它通過」）寫死了可測試情境。UI 微調、文案、設定檔編輯都沒有測試可寫——v1 框架會逼模型，在不該發明驗證條件的地方發明驗證條件。v2 的 `## Loop on declarative goals` 改成把驗證條件的決定權還給使用者、不規定格式。
-3. **「更短不會更糟」的實證背書**。[N=40 A/B 測試](./EXPERIMENT.md) 顯示在 Opus 4.7 上、v1（65 行）／v2（19 行）／無 `CLAUDE.md` 三組無統計顯著差異。刪到只剩 19 行不會可測量地變差——而且檔案越短、與專案規則衝突時的 review 成本越低。
-
-#### policy / mechanism 分離
-
-Karpathy 列的陷阱中、v2 *沒有*刪掉的那條最重要：**`Loop on declarative goals`**。它能活下來、第一個原因是系統提示詞沒涵蓋——但更關鍵的原因是、這件事的槓桿在**使用者端**、不在 LLM 自我約束。這也是為什麼 saygoal 提供 `/dec`：一個把命令式請求改寫成宣告式契約的 slash command、搭配內建的 `/goal` evaluator（詳見上方 [工作流](#dec--goal--工作流)）。
-
-這個「policy / mechanism 分離」——LLM 處理「想要什麼」（high-level intent）、工具處理「怎麼達成」（deterministic execution）——在 2025–2026 的研究文獻中已經收斂成主流範式（[arxiv 2510.04607](https://arxiv.org/html/2510.04607v2)、[PDL arxiv 2410.19135](https://arxiv.org/pdf/2410.19135)）。`/dec` 是這個範式在 prompt 工程層的對應介面。
-
-### A/B 實證告訴我們什麼
-
-上方那張 v1→v2 逐字對照表是「為什麼新版這麼短」的論證——v1 大部分內容已在系統提示詞裡。但這是觀察判斷、不是量測。所以 2026 年 5 月我們跑了小型 A/B 實證：
-
-- 3 組：無 CLAUDE.md / v1 上游版（65 行）/ v2 我們版（19 行）
-- 4 個誘發 Karpathy 痛點的 toy task + 最區分維度 T1 ambiguous-bug 加碼到每組 N=10
-- 受測模型：Opus 4.7；盲判官（blind judge）：Sonnet 4.6
-
-**結果：三組沒有統計顯著差異。** T1 加碼到每組 N=10 後三組全部 7/10 正確、Fisher exact p = 1.000。30 次 runs 中 **0 次**在編輯前問澄清（clarification）——不論哪版規則都沒能可靠觸發「停下來問」。
-
-誠實版結論：在這個 toy task 規模上、CLAUDE.md（不論哪版）對 Opus 4.7 行為的邊際效應**小到 N=10 測不出來**。**任選一版皆可；使用者端的宣告式描述方式（user-side declarative framing，就是 `/dec` 在做的事）槓桿可能比規則檔本身大。**
-
-完整資料、scripts、caveats、以及 Phase 1 (N=3) 一度看起來「v1 顯著優於 v2」最後被 Phase 2 (N=10) 攤平的過程：[`EXPERIMENT.md`](./EXPERIMENT.md)（英文）。
+完整資料、v1→v2 逐字對照與 caveat 都在 [`EXPERIMENT.md`](./EXPERIMENT.md)（英文）。
 
 ## 與上游的關係
 
@@ -263,5 +205,3 @@ Karpathy 列的陷阱中、v2 *沒有*刪掉的那條最重要：**`Loop on decl
 [MIT](./LICENSE) — Copyright © 2026 yelban。
 
 詳細出處說明見[與上游的關係](#與上游的關係)章節。
-
-[^sysprompt]: 第三欄的逐字 quote 是 2026-05-28 在 Claude Code CLI session 直接觀察到的 Opus 4.7 系統提示詞。完整觀測 snapshot 存於 [`archived/observed-system-prompts/2026-05-28-opus-4.7-cli.md`](./archived/observed-system-prompts/2026-05-28-opus-4.7-cli.md)（英文）——該檔案說明系統提示詞與 `CLAUDE.md` 注入，在 session 結構中如何位置上可分離，並把表格每一條 quote 都對應到 snapshot 內精確位置。**Opus 4.8（2026-05-29）改用 lean prompt、把這八條 quote 全部拿掉**——4.7→4.8 diff 見 [`2026-05-29-opus-4.8-cli.md`](./archived/observed-system-prompts/2026-05-29-opus-4.8-cli.md)。Claude Code 系統提示詞是 runtime 注入、Anthropic 並未公開文件化；措辭隨 CLI／模型更新改變（4.7→4.8 是一次大改）。
