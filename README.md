@@ -136,30 +136,30 @@ Three confirmed values of running `dec` before opening a Codex `/goal`:
 
 ## Install
 
-The `/dec` command and the optional `CLAUDE.md` rules are independent — pick any combination.
-
-| | `/dec` command | Three reminders (`CLAUDE.md`) | Mechanism |
-|---|---|---|---|
-| **A. Plugin** | `/saygoal:dec` (namespaced) | — (skill removed in v3.0.0; use B / C / D) | auto-updates via marketplace |
-| **B. `CLAUDE.md`** | — | always-on in system prompt | per-project file, manual `curl` |
-| **C. Manual command** | `/dec` (short, global) | — | manual `curl` |
-| **D. `git clone`** | `/dec` (short, symlinked) | `cp` whole file *or* `sed`-append rules | `git pull` updates `/dec`; `CLAUDE.md` is your editable copy |
-| **E. Codex plugin** | `dec` skill (`$dec` / `/skills`) | — | Codex plugin marketplace |
-
-**Option A: Claude Code plugin** — installs only the `/dec` command (namespaced), auto-updates via marketplace.
+### Claude Code
 
 ```
 /plugin marketplace add aeopress/saygoal.TW
 /plugin install saygoal@saygoal
 ```
 
-**Option B: `CLAUDE.md` per-project** — three reminders always loaded for that project.
+Then use `/saygoal:dec <task>`. The built-in `/goal` is always available — no install needed.
 
-```bash
-curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md
+### Codex
+
+From the cloned repo root:
+
+```
+codex plugin marketplace add .
+codex plugin add saygoal@saygoal
 ```
 
-**Option C: Manual `/dec` command** — short invocation without the plugin namespace. `/dec` is a vendor-agnostic prompt template with no project-specific state, so installing it globally is the only sensible scope.
+Then use `$dec <task>` (or pick it from `/skills`), and paste the generated `/goal "..."` into Codex's built-in `/goal`.
+
+<details>
+<summary><b>Advanced</b> — short <code>/dec</code>, the optional <code>CLAUDE.md</code> rules, auto-update, Cursor</summary>
+
+**Short `/dec` (no namespace).** The plugin namespaces the command to `/saygoal:dec`. For the bare `/dec`, drop the command file in globally:
 
 ```bash
 mkdir -p ~/.claude/commands
@@ -167,66 +167,26 @@ curl -o ~/.claude/commands/dec.md \
   https://raw.githubusercontent.com/aeopress/saygoal.TW/main/plugin/commands/dec.md
 ```
 
-**Option D: `git clone` + symlink** — `/dec` auto-updates via `git pull`; `CLAUDE.md` is copied as a starting point you can freely edit per project.
+**The three `CLAUDE.md` reminders (optional).** Our [A/B test](./EXPERIMENT.md) found no measurable effect on Opus 4.7/4.8 — install only if you want them:
 
 ```bash
-# 1. Clone once (any location works; example uses ~/.claude/external/)
-mkdir -p ~/.claude/external
-git clone https://github.com/aeopress/saygoal.TW \
-  ~/.claude/external/saygoal.TW
-
-# 2. Symlink the short /dec command globally (the command itself is stateless,
-#    so a symlink that follows upstream is what you want)
-mkdir -p ~/.claude/commands
-ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md \
-  ~/.claude/commands/dec.md
-
-# 3. CLAUDE.md placement — choose ONE.
-#    NOT a symlink: CLAUDE.md belongs to where you put it; copy or append,
-#    then keep editing it yourself.
-
-# (a) Project doesn't have a CLAUDE.md yet — copy the file as a project starting point:
-cp ~/.claude/external/saygoal.TW/CLAUDE.md ./CLAUDE.md
-
-# (b) Project already has its own CLAUDE.md — append just the three rules:
-sed -n '/^## Stop when confused/,$p' \
-  ~/.claude/external/saygoal.TW/CLAUDE.md >> ./CLAUDE.md
-
-# (c) Append to your GLOBAL ~/.claude/CLAUDE.md (rules apply across every project).
-#     Recommended: back up first if you already have your own global customizations,
-#     since your existing rules may interact with these three.
-cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak  # only if it exists
-sed -n '/^## Stop when confused/,$p' \
-  ~/.claude/external/saygoal.TW/CLAUDE.md >> ~/.claude/CLAUDE.md
-
-# To update /dec and pull future README / EXPERIMENT.md updates:
-cd ~/.claude/external/saygoal.TW && git pull
-# CLAUDE.md does NOT auto-update — re-run (a)/(b)/(c) only if you want to.
+curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md
+# or append just the rules to an existing CLAUDE.md:
+# curl -s https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md | sed -n '/^## Stop when confused/,$p' >> CLAUDE.md
 ```
 
-> The `sed` extraction starts at the first `## Stop when confused` heading, skipping the title and intro paragraph. The trailing `/dec` invocation note is included — useful as a footer in your project's CLAUDE.md.
-
-**Option E: Codex plugin** — installs the `dec` skill for Codex without touching the Claude Code `/dec` command. Run these from the repository root after cloning:
+**Auto-updating short `/dec`.** Clone once and symlink, so `git pull` keeps it current:
 
 ```bash
-codex plugin marketplace add .
-codex plugin add saygoal@saygoal
+mkdir -p ~/.claude/external ~/.claude/commands
+git clone https://github.com/aeopress/saygoal.TW ~/.claude/external/saygoal.TW
+ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/dec.md
+# update later: cd ~/.claude/external/saygoal.TW && git pull
 ```
 
-Use it in Codex as `$dec <request>` or through `/skills`; then paste the generated `/goal "..."` line into Codex's built-in `/goal` when you want the autonomous loop.
+**Cursor.** The repo includes [`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc) (`alwaysApply: true`); see [`CURSOR.md`](./CURSOR.md).
 
-### Recommended combinations
-
-- **Codex users: E** — installs the Codex `dec` skill and leaves every Claude Code path untouched. Pair the generated condition with Codex `/goal`.
-- **A + D** ★ **top pick** — plugin auto-updates `/saygoal:dec` via marketplace; a separate `git clone` + `ln -sf` gives you the short `/dec` that updates via `git pull`. Both invocations work, the file contents are identical. Best blend of "set and forget" plus "short trigger word", since Claude Code has no native slash-command alias mechanism — having both channels installed is the workaround. Step 3(c) (sed-append CLAUDE.md into `~/.claude/CLAUDE.md`) is optional alongside.
-- **D alone** — clone once, symlink `/dec`, copy CLAUDE.md as a starting point. `git pull` updates `/dec` (and future README / EXPERIMENT.md); CLAUDE.md stays editable per project. No marketplace, short `/dec`. Solid choice if you don't want the plugin path at all.
-- **B + C** (no plugin, no clone) — `CLAUDE.md` always-on + short `/dec`, both via `curl`. Smallest footprint, but updates are manual (re-run the `curl` commands).
-- **A only** — single install command, auto-updates. Since v3.0.0 the plugin is `/dec`-only (no skill). You'll have to type the full `/saygoal:dec` every time.
-- **A + B** — plugin for `/dec` (namespaced) + `CLAUDE.md` for always-on rules. Clean separation since v3.0.0: plugin owns `/dec`, `CLAUDE.md` owns rules, no overlap.
-
-## Using with Cursor
-
-The repository includes [`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc) with `alwaysApply: true`. See [`CURSOR.md`](./CURSOR.md) for setup details and how it differs from the Claude Code install.
+</details>
 
 ## Why the rules file isn't the leverage — the receipts
 

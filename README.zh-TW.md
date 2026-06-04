@@ -136,30 +136,30 @@ OpenAI 的 Codex CLI 比 Claude Code 早 11 天，在 [v0.128.0（2026-04-30）]
 
 ## 安裝
 
-`/dec` 指令與可選的 `CLAUDE.md` 規則各自獨立——任意組合都可以。
-
-| | `/dec` 指令 | 三條規則（`CLAUDE.md`） | 機制 |
-|---|---|---|---|
-| **A. 外掛** | `/saygoal:dec`（含 namespace） | — (v3.0.0 起 skill 已移除；改用 B / C / D) | 透過 marketplace 自動更新 |
-| **B. `CLAUDE.md`** | — | 永遠在 system prompt | 依專案放一份、手動 `curl` |
-| **C. 手動指令檔** | `/dec`（短、全域） | — | 手動 `curl` |
-| **D. `git clone`** | `/dec`（短、symlink 過去） | 整檔 `cp` *或* `sed` 追加規則 | `git pull` 更新 `/dec`；`CLAUDE.md` 是你的可編輯副本 |
-| **E. Codex plugin** | `dec` skill（`$dec` / `/skills`） | — | Codex plugin marketplace |
-
-**選項 A：Claude Code 外掛** — 只安裝 `/dec` 指令（含 namespace）、透過 marketplace 自動更新。
+### Claude Code
 
 ```
 /plugin marketplace add aeopress/saygoal.TW
 /plugin install saygoal@saygoal
 ```
 
-**選項 B：依專案使用 `CLAUDE.md`** — 三條規則在該專案永遠載入。
+裝好後用 `/saygoal:dec <任務>`。內建 `/goal` 永遠可用、不需安裝。
 
-```bash
-curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md
+### Codex
+
+clone 本 repo 後、在 root 執行：
+
+```
+codex plugin marketplace add .
+codex plugin add saygoal@saygoal
 ```
 
-**選項 C：手動安裝 `/dec` 指令** — 不經過外掛 namespace、直接打短的 `/dec`。`/dec` 是不綁 vendor 的 prompt template、沒有專案特定狀態、所以**只裝全域**才合理。
+用 `$dec <任務>`（或從 `/skills` 選），再把產出的 `/goal "..."` 貼進 Codex 內建 `/goal`。
+
+<details>
+<summary><b>進階</b> — 短 <code>/dec</code>、可選的 <code>CLAUDE.md</code> 規則、自動更新、Cursor</summary>
+
+**短 `/dec`（免 namespace）。** 外掛會把指令 namespace 成 `/saygoal:dec`。想要短的 `/dec`，把指令檔放到全域：
 
 ```bash
 mkdir -p ~/.claude/commands
@@ -167,63 +167,26 @@ curl -o ~/.claude/commands/dec.md \
   https://raw.githubusercontent.com/aeopress/saygoal.TW/main/plugin/commands/dec.md
 ```
 
-**選項 D：`git clone` + symlink** — `/dec` 透過 `git pull` 自動更新；`CLAUDE.md` 整檔 `cp` 作為起點、之後依專案自由修改。
+**三條 `CLAUDE.md` 規則（可選）。** 我們的 [A/B 實證](./EXPERIMENT.md) 顯示對 Opus 4.7/4.8 沒有可測量效應——想要才裝：
 
 ```bash
-# 1. Clone 一次（位置自選；範例放 ~/.claude/external/）
-mkdir -p ~/.claude/external
-git clone https://github.com/aeopress/saygoal.TW \
-  ~/.claude/external/saygoal.TW
-
-# 2. 把短的 /dec 指令 symlink 到全域（命令本身 stateless、跟著上游走就好）
-mkdir -p ~/.claude/commands
-ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md \
-  ~/.claude/commands/dec.md
-
-# 3. CLAUDE.md 放哪——擇一。
-#    不用 symlink：CLAUDE.md 是放置位置的所有人改的東西、所以是「cp 或追加之後自己改」。
-
-# (a) 專案還沒 CLAUDE.md、整檔 cp 當專案起點：
-cp ~/.claude/external/saygoal.TW/CLAUDE.md ./CLAUDE.md
-
-# (b) 專案已有自己的 CLAUDE.md、只追加三條規則：
-sed -n '/^## Stop when confused/,$p' \
-  ~/.claude/external/saygoal.TW/CLAUDE.md >> ./CLAUDE.md
-
-# (c) 追加到你的「全域」 ~/.claude/CLAUDE.md（規則跨所有專案套用）。
-#     建議先備份：你既有的全域規則可能跟這三條互動。
-cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak  # 既有才需要備份
-sed -n '/^## Stop when confused/,$p' \
-  ~/.claude/external/saygoal.TW/CLAUDE.md >> ~/.claude/CLAUDE.md
-
-# 更新 /dec、拉新版 README / EXPERIMENT.md：
-cd ~/.claude/external/saygoal.TW && git pull
-# CLAUDE.md 不會自動更新——想拿新規則時、自己再重跑 (a)/(b)/(c)。
+curl -o CLAUDE.md https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md
+# 或只把規則追加到既有 CLAUDE.md：
+# curl -s https://raw.githubusercontent.com/aeopress/saygoal.TW/main/CLAUDE.md | sed -n '/^## Stop when confused/,$p' >> CLAUDE.md
 ```
 
-> `sed` 從第一個 `## Stop when confused` 標題開始抓、跳過 README title 與前言段。末尾 `/dec` 呼叫說明會被一起追加——當作專案 CLAUDE.md 的 footer 也合用。
-
-**選項 E：Codex plugin** — 只替 Codex 安裝 `dec` skill，不動 Claude Code 既有 `/dec` command。Clone 後在本 repo root 執行：
+**自動更新的短 `/dec`。** clone 一次再 symlink，`git pull` 就會保持最新：
 
 ```bash
-codex plugin marketplace add .
-codex plugin add saygoal@saygoal
+mkdir -p ~/.claude/external ~/.claude/commands
+git clone https://github.com/aeopress/saygoal.TW ~/.claude/external/saygoal.TW
+ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/dec.md
+# 之後更新：cd ~/.claude/external/saygoal.TW && git pull
 ```
 
-在 Codex 裡用 `$dec <request>` 或 `/skills` 叫用；若要啟動 autonomous loop，再把輸出的 `/goal "..."` 貼進 Codex 內建 `/goal`。
+**Cursor。** 本倉庫附 [`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc)（`alwaysApply: true`）；詳情見 [`CURSOR.md`](./CURSOR.md)。
 
-### 推薦組合
-
-- **Codex 使用者：E** — 安裝 Codex `dec` skill，完全不影響 Claude Code 路徑。輸出的 condition 可直接搭配 Codex `/goal`。
-- **A + D** ★ **首選** — 外掛 marketplace 自動更新 `/saygoal:dec`；另外 `git clone` + `ln -sf` 給你短 `/dec`、透過 `git pull` 同步。兩種喊法都能用、檔案內容相同。這是「set and forget」加「短觸發詞」的最佳組合——Claude Code 沒有原生 slash command alias 機制、雙 channel 安裝是 workaround。Step 3(c)（sed 追加 CLAUDE.md 到 `~/.claude/CLAUDE.md`）可選順帶做。
-- **只裝 D** — clone 一次、symlink `/dec`、`cp` CLAUDE.md 當起點。`git pull` 更新 `/dec`（與未來的 README / EXPERIMENT.md）；CLAUDE.md 保留專案內可編輯。不依賴 marketplace、保留短 `/dec`。完全不想走 plugin 路徑的話這個也夠。
-- **B + C**（不裝外掛、不 clone）— `CLAUDE.md` 永遠在 + 短 `/dec`，兩個都 `curl`。最輕量、但要更新時要手動重跑 `curl`。
-- **只裝 A** — 一條指令搞定、自動更新。v3.0.0 起 plugin 只含 `/dec`（無 skill）。你每次都要打完整的 `/saygoal:dec`。
-- **A + B** — 外掛拿 `/dec`（namespaced）+ `CLAUDE.md` 拿永遠在的規則。v3.0.0 起職責清楚：plugin 管 `/dec`、`CLAUDE.md` 管規則、不再重疊。
-
-## 搭配 Cursor 使用
-
-本倉庫附 [`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc)，設定為 `alwaysApply: true`。詳情見 [`CURSOR.md`](./CURSOR.md)。
+</details>
 
 ## 為什麼規則檔不是重點 — 實證
 
