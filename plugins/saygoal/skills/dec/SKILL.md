@@ -44,6 +44,14 @@ The **Iteration policy** above is a sensible default — keep it verbatim unless
 
 ---
 
+## Contract quality rules
+
+- **Verify the verification first**: before emitting the contract, confirm with read-only checks that the `Verification:` target actually runs (test file exists, script is defined in package.json, binary is on PATH). If it doesn't exist yet, flag `⚠ verification does not exist yet — create it first` and make creating it the first step; otherwise the `/goal` loop fails on turn one.
+- **Mark invented thresholds**: any numeric threshold the user did not supply (e.g. `p95 < 200ms`) gets `(assumed — confirm)` so a guess is never mistaken for a requirement.
+- **Self-contained**: the `/goal` block will be pasted into a fresh session — no references to conversation context ("as discussed", "the function above"). File names, paths, and thresholds are spelled out inside the block.
+
+---
+
 ## Internal rule: anti-speculation auto-fill (apply silently, do not echo this table)
 
 Merge the matching constraint into the `Constraints:` field based on task keywords. Respect context: if the target is a UI element, CSS class, or scratch object, do **not** trigger the data-layer constraint.

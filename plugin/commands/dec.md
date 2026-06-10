@@ -7,6 +7,8 @@ description: Reframe an imperative request as a declarative /goal contract (succ
 
 `/dec` 是 **declarative** 的縮寫。把下方請求轉成宣告式契約。**不要實作。**
 
+若在 plan mode 被啟動:`/dec` 只分析、不實作、不寫檔——直接輸出契約即可,不要走 ExitPlanMode 送審流程。
+
 ---
 
 ## 先判斷適用性
@@ -24,6 +26,8 @@ description: Reframe an imperative request as a declarative /goal contract (succ
 ### 1. 成功條件 (Success criteria)
 可驗證的端狀態,且必須是 Claude `/goal` 的 evaluator 在對話 transcript 裡找得到的證據:指令退出碼、輸出比對、可量化門檻(p95 < X ms)。
 
+使用者沒給、由你推定的數字門檻(如 p95 < 200ms),標註 `(assumed,請確認)`——別讓推定值被當成既定需求。
+
 ### 2. 驗證指令 (Verification)
 > ⚠️ Claude `/goal` 的 evaluator(小模型)**只讀對話 transcript、不自己跑指令、不讀檔案**。
 
@@ -32,6 +36,8 @@ description: Reframe an imperative request as a declarative /goal contract (succ
 - ✅ `run \`npx playwright test login.spec.ts\` and paste output showing "X passed, 0 failed"`
 - ✅ `run \`scripts/bench.sh\` and paste output showing p95 < 200ms`
 - ❌ `tests pass` / `the flicker is gone` / `check the file is correct`(evaluator 判不了)
+
+**先查證再輸出**:用唯讀方式確認驗證指令真的可跑(測試檔存在、script 在 package.json 裡、binary 在 PATH)。不存在就標「⚠ 此驗證尚不存在,需先建立」並把建立它列為第一步——否則 `/goal` 第一回合就撞牆。
 
 ### 3. 邊界 (Boundaries)
 **只列與本任務相關的面,不相關的整塊省略——不要寫「N/A」或「無」。**
@@ -56,6 +62,8 @@ without [constraints,多條用 AND 串] or stop after 20 turns — adjust by tas
        AND without removing any existing assertion
        or stop after 20 turns"
 ```
+
+condition 必須**自包含**:禁止「剛剛討論的」「如上所述」這類對話內指涉——這條字串會被複製到全新 session,讀者只看得到它本身。檔名、路徑、門檻全部寫死在字串裡。
 
 ### 何時暫停 (Pause-if) — 獨立列出,**不要塞進上面的 condition**
 Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會誤判為失敗而繼續 loop。改為:**獨立列出觸發情境,並建議使用者用 Stop hook 實作**(缺權限 / 需破壞性操作 / 需人工決策 / N 次失敗 / 文件衝突)。
