@@ -197,6 +197,18 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 </details>
 
+## 加码指令：`/saygoal:repo-audit`
+
+Plugin 也附带 `/saygoal:repo-audit`——principal 级别的只读 repo audit（改编自 [OmerFarukOruc 的 `/repo-audit` gist](https://gist.github.com/OmerFarukOruc/753f95b1ac278b683be83ed26b3bcc1f)，为 saygoal 工作流调校）。它会先画出 repo map，再按 audit 维度并行展开 subagents、挖 git 历史找 churn × 复杂度热点、对每个 Critical/High finding 做对抗式验证后才写进报告，最后输出单一 `AUDIT.md`——其任务计划**每个任务结尾附一条可直接粘贴的 `/goal` condition**，audit 产出直接接回同一条声明式循环：audit → 任务 → `/goal`。
+
+```
+/saygoal:repo-audit                  # 完整 audit → AUDIT.md
+/saygoal:repo-audit security         # 可选焦点：某维度或某路径
+/saygoal:repo-audit use a workflow   # 大型 repo 可 opt-in 多 agent 编排
+```
+
+用普通模式跑（不要 plan mode）、放着让它跑完——全程只读，唯一会创建的文件是 `AUDIT.md`。
+
 ## 为什么规则档不是重点 — 实证
 
 `saygoal` 也附一份三行的 `CLAUDE.md`（内容衍生自 [Andrej Karpathy 对 LLM 编码陷阱的观察](https://x.com/karpathy/status/2015883857489522876)）。它是可选的——而 A/B 实证显示规则档几乎不动模型。

@@ -197,6 +197,18 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 </details>
 
+## Bonus command: `/saygoal:repo-audit`
+
+The plugin also ships `/saygoal:repo-audit` — a principal-level, read-only repo audit (adapted from [OmerFarukOruc's `/repo-audit` gist](https://gist.github.com/OmerFarukOruc/753f95b1ac278b683be83ed26b3bcc1f), tuned for the saygoal pipeline). It maps the repo, fans out parallel subagents per audit dimension, mines git history for churn × complexity hotspots, adversarially verifies every Critical/High finding before reporting it, and writes a single `AUDIT.md` — whose task plan ends **each task with a ready-to-paste `/goal` condition**, so the audit feeds straight into the same declarative loop: audit → task → `/goal`.
+
+```
+/saygoal:repo-audit                  # full audit → AUDIT.md
+/saygoal:repo-audit security         # optional focus: a dimension or a path
+/saygoal:repo-audit use a workflow   # opt into multi-agent orchestration on big repos
+```
+
+Run it in normal mode (not plan mode) and let it run end to end — it's read-only; the only file it creates is `AUDIT.md`.
+
 ## Why the rules file isn't the leverage — the receipts
 
 `saygoal` also ships a three-line `CLAUDE.md` (derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls). It's optional — and an A/B test says the rules file barely moves the model.

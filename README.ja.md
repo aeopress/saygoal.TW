@@ -121,6 +121,18 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 </details>
 
+## おまけコマンド：`/saygoal:repo-audit`
+
+プラグインには `/saygoal:repo-audit` も同梱されています — principal レベルの読み取り専用リポジトリ監査（[OmerFarukOruc 氏の `/repo-audit` gist](https://gist.github.com/OmerFarukOruc/753f95b1ac278b683be83ed26b3bcc1f) を saygoal ワークフロー向けに調整）。リポジトリマップを作成し、監査ディメンションごとにサブエージェントを並列展開、git 履歴から churn × 複雑度のホットスポットを発掘し、Critical/High の指摘は敵対的検証を通過したものだけを報告。成果物は単一の `AUDIT.md` で、タスク計画の**各タスク末尾にはそのまま貼れる `/goal` condition** が付きます。つまり監査結果がそのまま宣言型ループ（監査 → タスク → `/goal`）に流れ込みます。
+
+```
+/saygoal:repo-audit                  # フル監査 → AUDIT.md
+/saygoal:repo-audit security         # 任意のフォーカス：ディメンションやパス
+/saygoal:repo-audit use a workflow   # 大規模リポジトリ向けマルチエージェント編成のオプトイン
+```
+
+通常モードで実行してください（plan mode は不要）。読み取り専用なので最後まで放置して大丈夫です — 作成されるファイルは `AUDIT.md` だけです。
+
 ## ちなみに：ルールファイルは主役じゃありません
 
 saygoal には 3 行の `CLAUDE.md`（Karpathy の観察がベース）もおまけで入っているんですが、実験してみたら**ルールファイル自体はモデルの挙動をほとんど動かさない**、という結果でした。効くのは `/dec` + `/goal` のほう。
