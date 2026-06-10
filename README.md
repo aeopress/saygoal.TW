@@ -201,6 +201,16 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 The plugin also ships `/saygoal:repo-audit` — a principal-level, read-only repo audit (adapted from [OmerFarukOruc's `/repo-audit` gist](https://gist.github.com/OmerFarukOruc/753f95b1ac278b683be83ed26b3bcc1f), tuned for the saygoal pipeline). It maps the repo, fans out parallel subagents per audit dimension, mines git history for churn × complexity hotspots, adversarially verifies every Critical/High finding before reporting it, and writes a single `AUDIT.md` — whose task plan ends **each task with a ready-to-paste `/goal` condition**, so the audit feeds straight into the same declarative loop: audit → task → `/goal`.
 
+It complements `/dec` rather than overlapping it — same pipeline, different trigger and granularity:
+
+| | `/repo-audit` | `/dec` | `/goal` |
+|---|---|---|---|
+| Role | batch **finder** | single-task **contractor** | **executor** |
+| Triggered by | the codebase itself (you don't know the problems yet) | a need already in your head | a condition in hand |
+| Output | `AUDIT.md` — a whole task queue | one contract + one condition | loops until green |
+
+Audit tasks already embed `/dec`'s evaluator rules, so they paste straight into `/goal` without another `/dec` pass; `/dec` remains the tool for day-to-day single tasks.
+
 ```
 /saygoal:repo-audit                  # full audit → AUDIT.md
 /saygoal:repo-audit security         # optional focus: a dimension or a path

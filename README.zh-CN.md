@@ -201,6 +201,16 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 Plugin 也附带 `/saygoal:repo-audit`——principal 级别的只读 repo audit（改编自 [OmerFarukOruc 的 `/repo-audit` gist](https://gist.github.com/OmerFarukOruc/753f95b1ac278b683be83ed26b3bcc1f)，为 saygoal 工作流调校）。它会先画出 repo map，再按 audit 维度并行展开 subagents、挖 git 历史找 churn × 复杂度热点、对每个 Critical/High finding 做对抗式验证后才写进报告，最后输出单一 `AUDIT.md`——其任务计划**每个任务结尾附一条可直接粘贴的 `/goal` condition**，audit 产出直接接回同一条声明式循环：audit → 任务 → `/goal`。
 
+它与 `/dec` 互补而不重叠——同一条管线，差在触发源与粒度：
+
+| | `/repo-audit` | `/dec` | `/goal` |
+|---|---|---|---|
+| 角色 | 批量**发现器** | 单任务**合约器** | **执行器** |
+| 触发源 | codebase 现状（你还不知道问题在哪） | 你脑中已有的需求 | 拿到 condition 之后 |
+| 产出 | `AUDIT.md`：一整个任务队列 | 一份合约 + 一条 condition | 循环到达标 |
+
+Audit 任务已内嵌 `/dec` 的 evaluator 规则，可直接粘进 `/goal`、不必再过一次 `/dec`；日常单发任务仍由 `/dec` 负责。
+
 ```
 /saygoal:repo-audit                  # 完整 audit → AUDIT.md
 /saygoal:repo-audit security         # 可选焦点：某维度或某路径

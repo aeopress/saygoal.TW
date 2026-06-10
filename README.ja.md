@@ -125,6 +125,16 @@ ln -sf ~/.claude/external/saygoal.TW/plugin/commands/dec.md ~/.claude/commands/d
 
 プラグインには `/saygoal:repo-audit` も同梱されています — principal レベルの読み取り専用リポジトリ監査（[OmerFarukOruc 氏の `/repo-audit` gist](https://gist.github.com/OmerFarukOruc/753f95b1ac278b683be83ed26b3bcc1f) を saygoal ワークフロー向けに調整）。リポジトリマップを作成し、監査ディメンションごとにサブエージェントを並列展開、git 履歴から churn × 複雑度のホットスポットを発掘し、Critical/High の指摘は敵対的検証を通過したものだけを報告。成果物は単一の `AUDIT.md` で、タスク計画の**各タスク末尾にはそのまま貼れる `/goal` condition** が付きます。つまり監査結果がそのまま宣言型ループ（監査 → タスク → `/goal`）に流れ込みます。
 
+`/dec` とは重複せず補完関係にあります — 同じパイプラインで、トリガーと粒度が違うだけです：
+
+| | `/repo-audit` | `/dec` | `/goal` |
+|---|---|---|---|
+| 役割 | バッチ**発見器** | 単一タスクの**契約器** | **実行器** |
+| トリガー | コードベースの現状（問題がどこにあるかまだ知らない） | 頭の中にすでにあるニーズ | condition を手にしたとき |
+| 成果物 | `AUDIT.md` — タスクキューまるごと | 契約ひとつ + condition 一行 | 達成までループ |
+
+監査タスクには `/dec` の evaluator ルールが組み込み済みなので、`/dec` を通さずそのまま `/goal` に貼れます。日常の単発タスクは引き続き `/dec` の担当です。
+
 ```
 /saygoal:repo-audit                  # フル監査 → AUDIT.md
 /saygoal:repo-audit security         # 任意のフォーカス：ディメンションやパス
