@@ -1,5 +1,5 @@
 ---
-description: Reframe an imperative request as a declarative /goal contract (success criteria + verification + five-facet boundaries). Outputs a Claude Code /goal condition string. Do not implement yet.
+description: Reframe an imperative request as a declarative contract (success criteria + verification + five-facet boundaries), distilled into a ready-to-paste Claude Code /goal condition. Do not implement yet.
 ---
 
 <!-- platform: Claude Code (command) · output: single natural-language /goal condition -->
@@ -41,7 +41,7 @@ description: Reframe an imperative request as a declarative /goal contract (succ
 使用者沒給的數字門檻(如 p95 < 200ms),**先照上面的 grilling 問**;使用者明確要你自己定,才標 `(assumed,請確認)`——別讓推定值被當成既定需求。
 
 ### 2. 驗證指令 (Verification)
-> ⚠️ Claude `/goal` 的 evaluator(小模型)**只讀對話 transcript、不自己跑指令、不讀檔案**。
+> ⚠️ Claude `/goal` 的 evaluator **只讀對話 transcript、不自己跑指令、不讀檔案**。
 
 所以驗證一律寫成「**實作時必須執行並貼出輸出**」的形式,並指定可被 pattern-match 的關鍵字串或數字。**禁用** ensure / verify / make sure 這類可被靜態宣告矇混的動詞。
 
@@ -99,7 +99,7 @@ Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會�
 
 ---
 
-確認後使用者可:依契約直接實作,或複製 #4 貼入 `/goal` 讓 Claude Code 自動 loop 到達標(需 v2.1.139+)。
+確認後使用者可:依契約直接實作,或複製 #4 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。
 
 ---
 
