@@ -69,6 +69,8 @@ Together with the goal, hand the agent its verification tool: a test command, a 
 
 Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"), a verification command worded so Claude must *run it and paste the output*, and on-demand boundaries (what must not change / writable paths / external-system limits) — plus a ready-to-use `/goal` condition in the natural-language `[work] until [end state] without [constraints] or stop after 20 turns` shape you can paste directly. If the task is too subjective or too small, it replies "not applicable — just do it" instead of forcing a conversion. Good for one-shot prompts where you want the declarative discipline without committing to autonomous looping (or when you're on Cursor / an older Claude Code without `/goal`).
 
+**Grill first, then compile**: a contract only converges when no question remains — so on a vague request, `/dec` grills before compiling, asking one question at a time, each with a recommended answer, to resolve the fields it could otherwise only guess (threshold, whether the verification target exists, writable boundaries) instead of silently marking them `(assumed)`. Three behaviors: **vague** → one question at a time until it converges; **too subjective / too small** → "not applicable — just do it"; **clear and substantial** → compiles straight to a contract, no interrogation. The skip-when-clear guard means it probes only when genuinely needed, never badgering an already-precise request (verified end-to-end on the Codex CLI).
+
 ### `/dec` as the boundary-setter for `/goal`
 
 `/goal` is only as good as the condition string you feed it. Vague conditions never converge:

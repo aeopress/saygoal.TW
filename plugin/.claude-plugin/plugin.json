@@ -1,7 +1,7 @@
 {
   "name": "saygoal",
   "description": "The /dec and /repo-audit slash commands — declarative reframing of a request as success criteria + verification + non-goals, plus a read-only repo audit emitting /goal-ready tasks. Pair with Claude Code's built-in /goal (v2.1.139+). Traditional Chinese (Taiwan) localization fork of forrestchang/andrej-karpathy-skills.",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "author": {
     "name": "yelban"
   },

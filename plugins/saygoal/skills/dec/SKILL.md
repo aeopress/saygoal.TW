@@ -26,6 +26,18 @@ Do not force a contract when there is no meaningful verifiable end state.
 
 ---
 
+## Grill open fields first — after applicability, before compiling
+
+A contract only converges when no question remains. Before compiling, find the fields you could otherwise only fill by guessing — the success threshold, whether the verification target exists, the writable boundaries, tentative scope — and **resolve them by asking**, not by papering over them with `(assumed)`.
+
+- **Ask one question at a time**, each with your recommended answer. If a read-only check can answer it (does the test file exist, is the script in package.json), check instead of asking.
+- After each question, stop and wait — do not emit the contract before the user answers.
+- If everything is already clear, skip grilling and compile directly. Do not interrogate an already-precise request.
+
+**Contract done**: no bare `(assumed)` remains and every `Verification:` target is confirmed runnable. Grill until no open question is left, then output.
+
+---
+
 ## Output: seven-field Codex `/goal` template
 
 Fill all seven fields. Omit a field only if genuinely not applicable, and say why — do not pad it.
@@ -47,7 +59,7 @@ The **Iteration policy** above is a sensible default — keep it verbatim unless
 ## Contract quality rules
 
 - **Verify the verification first**: before emitting the contract, confirm with read-only checks that the `Verification:` target actually runs (test file exists, script is defined in package.json, binary is on PATH). If it doesn't exist yet, flag `⚠ verification does not exist yet — create it first` and make creating it the first step; otherwise the `/goal` loop fails on turn one.
-- **Mark invented thresholds**: any numeric threshold the user did not supply (e.g. `p95 < 200ms`) gets `(assumed — confirm)` so a guess is never mistaken for a requirement.
+- **Mark invented thresholds**: ask for any numeric threshold the user did not supply (see grilling above); only if they tell you to pick does it get `(assumed — confirm)`, so a guess is never mistaken for a requirement.
 - **Self-contained**: the `/goal` block will be pasted into a fresh session — no references to conversation context ("as discussed", "the function above"). File names, paths, and thresholds are spelled out inside the block.
 
 ---
