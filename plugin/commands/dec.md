@@ -28,7 +28,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - **一次只問一題**,每題附上你的建議答案;能用唯讀查碼回答的(測試檔在不在、script 有沒有在 package.json)就查碼,不要問。
 - **選項可枚舉的題目用 AskUserQuestion 問**(單選、建議答案放第一個選項並標 `(Recommended)`);自由值題(門檻數字、路徑)也可列 2–3 個建議選項,使用者能用 Other 自填。
 - **品味式約束要翻譯成脈絡,不能照抄**:使用者給的是「保持簡單」「別過度設計」「先快速做一版」這類品味式約束時,問出底層原因——這題選項固定,用 AskUserQuestion:**實驗性、可能短命** / **有期限壓力、先求能動** / **長期正式功能**——把答案編進任務脈絡(輸出 #4)。約束只能說「不要做什麼」;脈絡讓實作 agent 自己判斷約束沒預料到的情況。
-- **多子項規範多問一題(AskUserQuestion)**:差異報告由誰產生?**實作者自報**(預設、省 token)/ **workflow 獨立驗證**(每個子項派一個獨立驗證 agent,只對照規範與成果、不看實作過程;可信度高但 token 成本明顯較高)。單子項任務不問。答案影響 #5 的 condition 寫法。
+- **多子項規範多問一題(AskUserQuestion)**:差異報告由誰產生?**實作者自報**(預設、省 token)/ **workflow 獨立驗證**(每個子項派一個獨立驗證 agent,只對照規範與成果、不看實作過程;可信度高但 token 成本明顯較高)。單子項任務不問。答案影響 #5 的 condition 寫法。**子項的判準**:規範裡各自獨立可驗收的交付物才算(不同檔案、功能或驗證方式各一項);同一交付物的多個維度(一張表的多個欄位、一個 script 的多條規則)不算多子項。
 - 問完停下等回答,不要在使用者回覆前就吐契約。
 - 全部已清楚就跳過、直接編——別對已經夠精確的請求硬問。
 
@@ -52,7 +52,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - ✅ `run \`scripts/bench.sh\` and paste output showing p95 < 200ms`
 - ❌ `tests pass` / `the flicker is gone` / `check the file is correct`(evaluator 判不了)
 
-**先查證再輸出**:用唯讀方式確認驗證指令真的可跑(測試檔存在、script 在 package.json 裡、binary 在 PATH)。不存在就標「⚠ 此驗證尚不存在,需先建立」並把建立它列為第一步——否則 `/goal` 第一回合就撞牆。
+**先查證再輸出**:用唯讀方式確認驗證指令真的可跑(測試檔存在、script 在 package.json 裡、binary 在 PATH)。不存在就標「⚠ 此驗證尚不存在,需先建立」並把建立它列為第一步——否則 `/goal` 第一回合就撞牆。驗證目標本身就是任務交付物時(如「寫一個 script」),同樣標註並把建立列為第一步即可,不構成矛盾。
 
 **多子項規範 → 逐項差異報告**:成功條件涵蓋多個子項(規範列了好幾條)時,驗證除了指令輸出,再加一條「貼出逐項實作報告:每個子項標 implemented / deviated,deviated 要說明差異」。報告本身是 evaluator 可 pattern-match 的證據,同時堵住「靜默偏離規範」——loop 收斂了但建的不是你要的東西。報告預設由實作者自報;使用者在 grilling 選了 **workflow 獨立驗證**,報告改由驗證 workflow 產生(condition 寫法見 #5)——自報的弱點是自己改的考卷自己打分數,獨立驗證者沒看過實作過程,抓得到自報抓不到的偏離。
 
@@ -62,7 +62,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - **不可改動**(Constraints):不得更動的行為/語義(public API、認證流程、輸出格式)
 - **可改路徑**(Write scope):允許寫 / 禁止碰的路徑
 - **外部系統限制**(Action policy):read-only / draft-only / 不得 send·deploy·merge
-- **最多幾回合**(預算):Claude 一律加 `or stop after 20 turns`
+- **最多幾回合**(預算):Claude 一律加回合上限;預設 `or stop after 20 turns`,依任務複雜度調整數字
 
 ### 4. 任務脈絡 (Context) — 選配,有才寫
 一句話說明**為什麼做、任務壽命**:實驗還是正式功能、多久後可能刪、之後誰維護。這是給實作 agent 做判斷用的——約束只能列舉「不要做什麼」,脈絡讓它在約束沒預料到的情況下自己做對決定(「這是實驗,一個月後很可能刪掉——別建丟棄起來會心疼的東西」勝過「保持簡單」)。
@@ -74,10 +74,12 @@ description: Reframe an imperative request as a declarative contract (success cr
 
 ```
 [context 一短句,若有 —] [做什麼] until [可量化端狀態,由執行 CMD 並貼出輸出證明]
-without [constraints,多條用 AND 串] or stop after 20 turns — adjust by task complexity
+without [constraints,多條用 AND 串] or stop after [N] turns
 ```
 
-有任務脈絡(#4)時,在 condition 開頭放一短句(如 `context: this feature is a throwaway experiment —`),**一句為限**:脈絡是給實作 agent 讀的,evaluator 只 pattern-match until / without 部分,寫長了是雜訊。多子項規範時,until 段併入差異報告要求(如 `… and paste a per-item completion report (implemented / deviated)`);grilling 選了 **workflow 獨立驗證**則改為 `… then verify each spec item with a workflow — one independent verifier per item, judging outcome against the spec — and paste its per-item report (implemented / deviated)`。這句由使用者親手貼進 `/goal`,正好構成 Workflow 工具需要的使用者明確 opt-in,實作 session 可以合法啟用。
+回合上限 N 預設 20、依任務複雜度調整——這個調整是你(編譯者)的判斷,condition 裡只出現定案的數字,不要把調整說明抄進字串。
+
+有任務脈絡(#4)時,在 condition 開頭放一短句(如 `context: this feature is a throwaway experiment —`),**一句為限**:脈絡是給實作 agent 讀的,evaluator 只 pattern-match until / without 部分,寫長了是雜訊。多子項規範時,在 until 段**最後一個驗證證據之後**併入差異報告要求——自報版:`… and paste a per-item completion report (implemented / deviated, deviations explained)`;grilling 選了 **workflow 獨立驗證**則改為 `… then run a verification workflow (one independent verifier per spec item, judging outcome against the spec) and paste its per-item report (implemented / deviated)`。後者由使用者親手貼進 `/goal`,正好構成 Workflow 工具需要的使用者明確 opt-in,實作 session 可以合法啟用。
 
 範例:
 ```
@@ -121,7 +123,7 @@ Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會�
 
 **一個都沒偵測到** → 不提委派,只寫:確認後可依契約直接實作,或複製 #5 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。
 
-**偵測到至少一個** → 讀專案偏好檔 `.claude/saygoal.local.json`(格式 `{"delegate": "self-goal" | "codex-rescue" | "codex-agent"}`,不存在就當無偏好),然後用 **AskUserQuestion** 問執行通道——**每次都問,不因偏好跳過**(每次委派都花額度,單次否決權留給使用者);有偏好時把偏好通道排第一個選項標 `(Recommended)`,無偏好時把「自己 `/goal` loop」排第一。選項(只列偵測到的):
+**偵測到至少一個** → 讀專案偏好檔 `.claude/saygoal.local.json`(格式 `{"delegate": "self-goal" | "codex-rescue" | "codex-agent"}`,不存在就當無偏好),然後用 **AskUserQuestion** 問執行通道——**每次都問,不因偏好跳過**(每次委派都花額度,單次否決權留給使用者);有偏好時把偏好通道排第一個選項標 `(Recommended)`;無偏好時把「自己 `/goal` loop」排第一、同樣標 `(Recommended)`。選項(只列偵測到的):
 
 1. **自己 `/goal` loop**:輸出 #5 讓使用者貼(維持 `/dec` 不實作的邊界)
 2. **委派 `/codex:rescue`**:把契約 #1–#4 全文(不含 `/goal` 前綴)交給 Codex 背景執行
