@@ -26,6 +26,9 @@ description: Reframe an imperative request as a declarative contract (success cr
 契約只在「沒有未解問題」時才收斂。動手編之前,先盤出哪些欄位只能靠猜——成功門檻、驗證目標存不存在、可寫邊界、試探性範圍——把它們**問掉**,而不是標 `(assumed)` 帶過。
 
 - **一次只問一題**,每題附上你的建議答案;能用唯讀查碼回答的(測試檔在不在、script 有沒有在 package.json)就查碼,不要問。
+- **選項可枚舉的題目用 AskUserQuestion 問**(單選、建議答案放第一個選項並標 `(Recommended)`);自由值題(門檻數字、路徑)也可列 2–3 個建議選項,使用者能用 Other 自填。
+- **品味式約束要翻譯成脈絡,不能照抄**:使用者給的是「保持簡單」「別過度設計」「先快速做一版」這類品味式約束時,問出底層原因——這題選項固定,用 AskUserQuestion:**實驗性、可能短命** / **有期限壓力、先求能動** / **長期正式功能**——把答案編進任務脈絡(輸出 #4)。約束只能說「不要做什麼」;脈絡讓實作 agent 自己判斷約束沒預料到的情況。
+- **多子項規範多問一題(AskUserQuestion)**:差異報告由誰產生?**實作者自報**(預設、省 token)/ **workflow 獨立驗證**(每個子項派一個獨立驗證 agent,只對照規範與成果、不看實作過程;可信度高但 token 成本明顯較高)。單子項任務不問。答案影響 #5 的 condition 寫法。
 - 問完停下等回答,不要在使用者回覆前就吐契約。
 - 全部已清楚就跳過、直接編——別對已經夠精確的請求硬問。
 
@@ -51,6 +54,8 @@ description: Reframe an imperative request as a declarative contract (success cr
 
 **先查證再輸出**:用唯讀方式確認驗證指令真的可跑(測試檔存在、script 在 package.json 裡、binary 在 PATH)。不存在就標「⚠ 此驗證尚不存在,需先建立」並把建立它列為第一步——否則 `/goal` 第一回合就撞牆。
 
+**多子項規範 → 逐項差異報告**:成功條件涵蓋多個子項(規範列了好幾條)時,驗證除了指令輸出,再加一條「貼出逐項實作報告:每個子項標 implemented / deviated,deviated 要說明差異」。報告本身是 evaluator 可 pattern-match 的證據,同時堵住「靜默偏離規範」——loop 收斂了但建的不是你要的東西。報告預設由實作者自報;使用者在 grilling 選了 **workflow 獨立驗證**,報告改由驗證 workflow 產生(condition 寫法見 #5)——自報的弱點是自己改的考卷自己打分數,獨立驗證者沒看過實作過程,抓得到自報抓不到的偏離。
+
 ### 3. 邊界 (Boundaries)
 **只列與本任務相關的面,不相關的整塊省略——不要寫「N/A」或「無」。**
 
@@ -59,13 +64,20 @@ description: Reframe an imperative request as a declarative contract (success cr
 - **外部系統限制**(Action policy):read-only / draft-only / 不得 send·deploy·merge
 - **最多幾回合**(預算):Claude 一律加 `or stop after 20 turns`
 
-### 4. Ready-to-use `/goal` condition
+### 4. 任務脈絡 (Context) — 選配,有才寫
+一句話說明**為什麼做、任務壽命**:實驗還是正式功能、多久後可能刪、之後誰維護。這是給實作 agent 做判斷用的——約束只能列舉「不要做什麼」,脈絡讓它在約束沒預料到的情況下自己做對決定(「這是實驗,一個月後很可能刪掉——別建丟棄起來會心疼的東西」勝過「保持簡單」)。
+
+只在 grilling 問出內容、或使用者已自己提供時出現;沒有就整節省略,不寫「N/A」。
+
+### 5. Ready-to-use `/goal` condition
 合成一條 Claude Code `/goal` 可吃的**自然語言**字串(非結構化欄位)。骨架:
 
 ```
-[做什麼] until [可量化端狀態,由執行 CMD 並貼出輸出證明]
+[context 一短句,若有 —] [做什麼] until [可量化端狀態,由執行 CMD 並貼出輸出證明]
 without [constraints,多條用 AND 串] or stop after 20 turns — adjust by task complexity
 ```
+
+有任務脈絡(#4)時,在 condition 開頭放一短句(如 `context: this feature is a throwaway experiment —`),**一句為限**:脈絡是給實作 agent 讀的,evaluator 只 pattern-match until / without 部分,寫長了是雜訊。多子項規範時,until 段併入差異報告要求(如 `… and paste a per-item completion report (implemented / deviated)`);grilling 選了 **workflow 獨立驗證**則改為 `… then verify each spec item with a workflow — one independent verifier per item, judging outcome against the spec — and paste its per-item report (implemented / deviated)`。這句由使用者親手貼進 `/goal`,正好構成 Workflow 工具需要的使用者明確 opt-in,實作 session 可以合法啟用。
 
 範例:
 ```
@@ -96,10 +108,32 @@ Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會�
 | 刪除 / delete / drop(資料、持久層) | pause before any irreversible deletion and surface the target first |
 | auth / 認證 / token / permission | do not change the authentication flow or token validation logic |
 | 「後續可考慮」「未來再做」「v2」「暫不做但」等**不確定語氣** | 視為非目標,不進成功條件(裸字「未來/可擴展」若屬明確架構要求則不踢) |
+| 「保持簡單」「別過度設計」「先快速做一版」等**品味式約束** | 不併入「不可改動」——依 grilling 規則問出底層脈絡(實驗?壽命?期限?),編入任務脈絡(#4) |
 
 ---
 
-確認後使用者可:依契約直接實作,或複製 #4 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。
+## 契約輸出後:執行通道(偵測 → 詢問 → 派發)
+
+契約輸出後,先偵測可用的委派工具(皆唯讀,失敗視同未安裝):
+
+- **`/codex:rescue`**(openai codex plugin):看本 session 的 available skills 清單有沒有 `codex:rescue`;不確定時備援 `jq -e '.plugins | has("codex@openai-codex")' ~/.claude/plugins/installed_plugins.json`
+- **`codex-agent`**(codex-orchestrator):`command -v codex-agent`
+
+**一個都沒偵測到** → 不提委派,只寫:確認後可依契約直接實作,或複製 #5 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。
+
+**偵測到至少一個** → 讀專案偏好檔 `.claude/saygoal.local.json`(格式 `{"delegate": "self-goal" | "codex-rescue" | "codex-agent"}`,不存在就當無偏好),然後用 **AskUserQuestion** 問執行通道——**每次都問,不因偏好跳過**(每次委派都花額度,單次否決權留給使用者);有偏好時把偏好通道排第一個選項標 `(Recommended)`,無偏好時把「自己 `/goal` loop」排第一。選項(只列偵測到的):
+
+1. **自己 `/goal` loop**:輸出 #5 讓使用者貼(維持 `/dec` 不實作的邊界)
+2. **委派 `/codex:rescue`**:把契約 #1–#4 全文(不含 `/goal` 前綴)交給 Codex 背景執行
+3. **委派 `codex-agent`**:同上,適合多份契約平行 fan-out
+
+使用者選定後:
+
+- 選擇與偏好檔不同(或首次)→ 把新偏好寫回 `.claude/saygoal.local.json`;該檔未被 gitignore 時提醒一句(不要擅自改 `.gitignore`)。
+- 選 1 → 輸出 #5,結束。
+- 選 2 或 3 → **直接派發,不再確認**(剛才的選擇就是確認):選 2 用 **Skill 工具**叫用 `codex:rescue`、args 為 `--background <契約全文>`(不是 Bash);選 3 用 Bash 跑 `codex-agent start "<契約全文>"`。派發後回報 job/thread 資訊與收割方式(`/codex:status`+`/codex:result`,或 `codex-agent await-turn` + `output`),並提醒:收割時照契約 Verification 驗收、多子項看差異報告——只讀最終輸出,過程不回灌。
+
+委派是**調度**,不違反本 command 的「不要實作」:實作發生在被委派的模型,且以使用者當下的明確選擇為前提。
 
 ---
 

@@ -69,7 +69,11 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 回覆會給你成功條件（例如「Playwright 截圖比對 10 次、位移 < 2px」）、一條措辭成「Claude 必須實際執行並貼出輸出」的驗證指令、以及按需出現的邊界（不可改動 / 可寫路徑 / 外部系統限制）——**外加一條可直接複製貼上的 `/goal` condition**（自然語言的 `[做什麼] until [端狀態] without [約束] or stop after 20 turns` 句式）。若任務太主觀或太小，會回「不適用，建議直接做」、不硬轉換。適合單一 prompt 套用宣告式紀律、不需要自主迭代的場合（或在 Cursor / 舊版 Claude Code 沒有 `/goal` 時）。
 
-**先問清楚，再編譯（grilling 前置）**：好契約要能收斂，前提是沒有未解問題。所以面對模糊請求，`/dec` 會在編譯前先 grill——一次只問一題、每題附上建議答案，把只能靠猜的欄位（門檻、驗證目標存不存在、可寫邊界）問掉，而不是默默標 `(assumed)` 帶過。三種行為一目了然：**模糊任務** → 一次一題、問到收斂；**太主觀或太小** → 回「不適用，建議直接做」；**清楚且夠份量** → 不囉嗦、直接編出契約。skip-when-clear 護欄讓它只在真正需要時才追問，不騷擾已經精確的請求（行為已用 Codex CLI 實測通過）。
+**先問清楚，再編譯（grilling 前置）**：好契約要能收斂，前提是沒有未解問題。所以面對模糊請求，`/dec` 會在編譯前先 grill——一次只問一題、每題附上建議答案，把只能靠猜的欄位（門檻、驗證目標存不存在、可寫邊界）問掉，而不是默默標 `(assumed)` 帶過。三種行為一目了然：**模糊任務** → 一次一題、問到收斂；**太主觀或太小** → 回「不適用，建議直接做」；**清楚且夠份量** → 不囉嗦、直接編出契約。skip-when-clear 護欄讓它只在真正需要時才追問，不騷擾已經精確的請求（行為已用 Codex CLI 實測通過）。Claude Code 團隊成員 Thariq 描述的 Fable 5 工作法正是這個流程——"I'd ask Claude to interview me about the implementation before writing the final spec file"（[來源影片](https://x.com/trq212/status/2073100352921215386)）。
+
+**給脈絡，不只給約束（context, not constraints）**：Thariq 影片裡最精華的一招——與其說「保持簡單、別過度設計」，不如說「這是實驗功能，一個月後很可能刪掉，別建丟棄起來會心疼的東西」。約束只能列舉「不要做什麼」；脈絡讓 agent 在約束沒預料到的情況下自己做對決定。所以 `/dec` 遇到品味式約束不會照抄進契約，而是 grill 出底層原因（實驗？壽命？期限？——這題選項固定，Claude 版用 AskUserQuestion 單選），編成契約的選配「任務脈絡（Context）」欄位——Claude 版以一短句帶進 `/goal` condition 開頭（evaluator 只判 until / without 部分，脈絡是給實作 agent 讀的），Codex 版是七欄位外的選配 `Context:` 行。
+
+**多子項規範 → 逐項差異報告**：規範列了多個子項時，契約會把驗證延伸為「貼出逐項實作報告：每項標 implemented / deviated 並說明差異」——對應 Thariq 的 "prepare a report on what was implemented and if anything differed"。報告是 evaluator 可 pattern-match 的證據，也堵住最隱蔽的失敗模式：loop 收斂了，但建的不是你要的東西。報告預設由實作者自報；Claude 版在多子項時 grilling 會多問一題，可升級為 **workflow 獨立驗證**——每個子項派一個獨立驗證 agent、只對照規範與成果、不看實作過程——正是 Thariq 的 "use a workflow to verify each part of the plan"。獨立驗證可信（自報是自己改考卷）但較花 token，所以做成選項、預設自報。
 
 ### `/dec` 當作 `/goal` 的「邊界設定器」
 
@@ -106,6 +110,17 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 3. 複製 #1 那條 /goal 指令貼上     ← Haiku 接手當判官
 4. Claude 自主 loop 到收斂          ← Karpathy 說的「watch it go」
 ```
+
+### 契約也是委派 prompt —— 與 Codex 委派工具協作
+
+`/dec` 的輸出不只能餵 `/goal`。一份好的委派 prompt 需要五件事——context、明確目標、約束、輸出格式、完成判準——而這正好是契約的欄位。所以同一份契約也可以整段（不含 `/goal` 前綴）直接當作委派 prompt：
+
+- **[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc)**（`/codex:rescue`）：`/dec` 先把模糊需求編成契約，再 `/codex:rescue --background <契約全文>` 丟給 Codex 背景執行。收割（`/codex:result`）時照契約的驗證欄位驗收；逐項差異報告讓你只讀最終輸出就能判斷有沒有偏離，不用回看過程。
+- **[codex-orchestrator](https://github.com/yelban/codex-orchestrator)**（`codex-agent` CLI）：平行 fan-out 多個任務時，每個 `codex-agent start "<契約>"` 都帶著自己的驗證與邊界；`await-turn` 收割後照 Verification 驗收即可。
+
+Claude 版的 `/dec` 會把這件事自動化：契約輸出後偵測這兩個工具（看 session 的 skills 清單、`command -v codex-agent`），偵測到就用 AskUserQuestion 問執行通道——自己 `/goal` loop，還是委派出去。你的選擇記在專案的 `.claude/saygoal.local.json`，下次排在第一個選項；但**每次仍會問**（每次委派都花額度，單次否決權留在你手上）。選了委派就當場背景派發，收割時照契約的驗證欄位驗收。都沒安裝就不會提委派，行為與從前相同。
+
+分工是上下游：`/dec` 管「契約寫得夠不夠收斂」，委派工具管「誰去執行、怎麼平行」。同一份契約，貼 `/goal` 是自己 loop 到綠燈，交給委派工具是外包給另一顆模型——驗收標準不變。
 
 ### Codex `/goal` 也適用
 

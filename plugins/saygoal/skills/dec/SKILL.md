@@ -31,6 +31,7 @@ Do not force a contract when there is no meaningful verifiable end state.
 A contract only converges when no question remains. Before compiling, find the fields you could otherwise only fill by guessing — the success threshold, whether the verification target exists, the writable boundaries, tentative scope — and **resolve them by asking**, not by papering over them with `(assumed)`.
 
 - **Ask one question at a time**, each with your recommended answer. If a read-only check can answer it (does the test file exist, is the script in package.json), check instead of asking.
+- **Translate taste-based constraints into context, never copy them**: when the user says "keep it simple", "don't overengineer", or "quick and dirty", ask for the underlying reason — is this an experiment? likely deleted in a month? deadline pressure? long-lived production code? — and encode the answer in the optional `Context:` field. Constraints can only enumerate what not to do; context lets the implementer decide correctly in situations the constraints did not anticipate.
 - After each question, stop and wait — do not emit the contract before the user answers.
 - If everything is already clear, skip grilling and compile directly. Do not interrogate an already-precise request.
 
@@ -42,8 +43,11 @@ A contract only converges when no question remains. Before compiling, find the f
 
 Fill all seven fields. Omit a field only if genuinely not applicable, and say why — do not pad it.
 
+`Context:` is an **optional eighth line**: include it only when grilling surfaced intent (experiment vs long-lived, expected lifespan, deadline) or the user supplied it; otherwise omit the line silently — never pad it with "N/A".
+
 ```text
 /goal [Outcome — one sentence stating the observable end state, not an action].
+Context: [optional — why this task exists / expected lifespan, e.g. "throwaway experiment, likely deleted in a month — don't build anything painful to throw away"].
 Verification: [command / artifact / evidence that proves completion; runnable or inspectable by Codex].
 Constraints: [what must not change — behavior, public APIs, test assertions].
 Boundaries: [allowed write paths / forbidden paths; external systems read-only or draft-only].
@@ -60,6 +64,7 @@ The **Iteration policy** above is a sensible default — keep it verbatim unless
 
 - **Verify the verification first**: before emitting the contract, confirm with read-only checks that the `Verification:` target actually runs (test file exists, script is defined in package.json, binary is on PATH). If it doesn't exist yet, flag `⚠ verification does not exist yet — create it first` and make creating it the first step; otherwise the `/goal` loop fails on turn one.
 - **Mark invented thresholds**: ask for any numeric threshold the user did not supply (see grilling above); only if they tell you to pick does it get `(assumed — confirm)`, so a guess is never mistaken for a requirement.
+- **Multi-part specs end with a per-item deviation report**: when the Outcome covers multiple spec items, extend `Verification:` and `Stop when:` to require a pasted completion report listing each item as implemented / deviated (with the difference explained). The report is inspectable evidence, and it closes the failure mode where the loop converges but silently deviated from the spec.
 - **Self-contained**: the `/goal` block will be pasted into a fresh session — no references to conversation context ("as discussed", "the function above"). File names, paths, and thresholds are spelled out inside the block.
 
 ---
@@ -78,6 +83,7 @@ Merge the matching constraint into the `Constraints:` field based on task keywor
 | delete / drop / remove (data, persistence) | pause before any irreversible deletion and surface the target first |
 | auth / token / permission | do not change the authentication flow or token validation logic |
 | "later" / "future" / "v2" / "could consider" (tentative phrasing) | treat as a non-goal unless success criteria explicitly require it |
+| "keep it simple" / "don't overengineer" / "quick and dirty" (taste-based constraint) | do not merge into Constraints — grill for the underlying context (experiment? lifespan? deadline?) and encode it in `Context:` |
 
 ---
 
