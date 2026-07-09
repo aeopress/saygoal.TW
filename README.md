@@ -103,7 +103,7 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
 
 1. **Machine-checkable success conditions** — "diff < 2px", "10 passed", "p95 < X ms" map cleanly to evaluator yes/no.
 2. **A verification command embedded in the contract** — forces Claude to actually run the check, not statically reason "this should work now". (Patching-without-running was a real failure mode in our T4 declarative-loop test.)
-3. **Structured boundaries (five facets, on demand)** — what must not change, writable paths, external-system limits, pause-if, and a turn cap. For Claude they compile into the condition (`"… without test files changed and no new files in src/legacy/, or stop after 20 turns"`); pause-if is listed separately and is better as a Stop hook, since the evaluator can't judge it.
+3. **Structured boundaries (five facets, on demand)** — what must not change, writable paths, external-system limits, pause-if, and a turn cap. For Claude they compile into the condition (`"… without test files changed and no new files in src/legacy/, or stop after 20 turns"`); pause-if is listed separately and is better as a Stop hook, since the evaluator can't judge it. The turn cap is verification-cost-aware: a loop reruns its check every turn, so an expensive check (full e2e suite, long benchmark) lowers the cap — or the contract compiles a cheap targeted check per turn and saves the full suite for the end.
 
 ### The full pipeline
 
@@ -243,6 +243,26 @@ Audit tasks already embed `/dec`'s evaluator rules, so they paste straight into 
 ```
 
 Run it in normal mode (not plan mode) and let it run end to end — it's read-only; the only file it creates is `AUDIT.md`.
+
+## The bilevel upgrade — what arXiv 2603.23420 changed here
+
+[Bilevel Autoresearch: Meta-Autoresearching Itself](https://arxiv.org/abs/2603.23420) puts an outer loop on top of Karpathy's autoresearch loop: read the inner loop's trace, find where its search is stuck, rewrite the search mechanism itself, validate, revert on failure. The paper's own framing (§5.3) says Python code is just one carrier of a "mechanism" — skills, prompts, and workflows are equivalent carriers. That maps one-to-one onto this pipeline: **`/goal` is the inner loop, the contract is its search mechanism, and `/dec` was already the human-gated mechanism designer**. Releases v4.6.0–v4.8.0 filled in what the mapping showed was missing:
+
+| Paper mechanism | Already in saygoal | Added (v4.6.0–v4.8.0) |
+|---|---|---|
+| Inner loop: propose → evaluate → keep/discard | `/goal` (built into Claude Code / Codex) | — |
+| Mechanism carrier designed before the run | the contract; `/dec` compiles it | — |
+| Evaluator that can't be gamed | "run CMD **and paste the output**" wording; verify-the-verification pre-check | — |
+| Structured search trace | — | **trace clause** (v4.6.0): a one-line search log every 5 turns, on search-type tasks |
+| Tabu Search — its top generated mechanism | — | **anti-fixation clause** (v4.6.0): never repeat an approach that already failed verification twice |
+| Level 2 outer loop: read trace → diagnose → rewrite mechanism | — | **`/saygoal:retro`** (v4.7.0): five stall classes → structural contract rewrite |
+| Validate-and-revert on every injection | — | **`rollback:` line** (v4.7.0): every rewrite ships with the original condition verbatim |
+| Persistent cross-run memory (the EvoScientist lineage) | — | **`.claude/saygoal.history.jsonl`** (v4.7.0): retro appends, `/dec` grilling reads first |
+| Level 1.5 negative result: parameter tweaks gain nothing | — | retro's hard rule (v4.7.0): structural rewrites only — a bigger turn cap alone is forbidden |
+| Group B lesson: a frozen parameter walled off the solution | the anti-speculation table auto-adds constraints | retro treats auto-added constraints as the **prime suspect** behind a stall (v4.7.0) |
+| Loop cost (from the companion loop-engineering write-up, not the paper) | turn cap | **verification-cost-aware cap** (v4.8.0): expensive checks lower the cap, or per-turn checks go targeted with the full suite last |
+
+> **Same honesty rule as everything else here**: the paper's 5× headline is n = 3 per group with a standard deviation at 67% of the mean, on a single benchmark, and at least one reader reported a failed replication. By this repo's own [`EXPERIMENT.md`](./EXPERIMENT.md) standard ("any N = 3 LLM A/B conclusion is uncertain until N ≥ 10"), treat the number as unverified. What we adopted are the **architecture patterns** — trace, tabu, outer-loop rewrite, validate-and-revert — which are cheap and fail-safe: every clause compiles away on non-search tasks, and every rewrite carries its own rollback.
 
 ## Why the rules file isn't the leverage — the receipts
 

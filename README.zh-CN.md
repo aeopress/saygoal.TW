@@ -103,7 +103,7 @@ Karpathy 最强的洞见其实是**用户端的纪律**，不是 LLM 自我约�
 
 1. **可机器判定的成功条件**——「diff < 2px」「10 passed」「p95 < X ms」evaluator 看 transcript 就能 yes/no
 2. **嵌进契约的验证指令**——强迫 Claude 真的去跑检查、而不是静态推理然后回报「应该可以了」（这正是我们 T4 declarative-loop 测试看到的失败模式）
-3. **结构化边界（五面、按需）**——不可改动、可写路径、外部系统限制、何时暂停、回合上限。对 Claude 这些会编进 condition（「… without test files changed and no new files in src/legacy/, or stop after 20 turns」）；其中「何时暂停」单独列出、建议用 Stop hook，因为 evaluator 判不了它。
+3. **结构化边界（五面、按需）**——不可改动、可写路径、外部系统限制、何时暂停、回合上限。对 Claude 这些会编进 condition（「… without test files changed and no new files in src/legacy/, or stop after 20 turns」）；其中「何时暂停」单独列出、建议用 Stop hook，因为 evaluator 判不了它。回合上限把验证成本算进去：loop 每回合都重跑验证，验证昂贵（整包 e2e、长 benchmark）就下调上限——或契约改编便宜的针对性验证逐回合跑、全套留到收尾跑一次。
 
 ### 完整 pipeline
 
@@ -243,6 +243,26 @@ Audit 任务已内嵌 `/dec` 的 evaluator 规则，可直接粘进 `/goal`、�
 ```
 
 用普通模式跑（不要 plan mode）、放着让它跑完——全程只读，唯一会创建的文件是 `AUDIT.md`。
+
+## Bilevel 升级 —— arXiv 2603.23420 改了这里的什么
+
+[Bilevel Autoresearch: Meta-Autoresearching Itself](https://arxiv.org/abs/2603.23420) 在 Karpathy 的 autoresearch loop 上再架一圈外圈：读内圈的 trace、找出搜索卡在哪、重写搜索机制本身、验证、失败就回退。论文自己的定位（§5.3）说 Python 代码只是「机制」的载体之一——skill、prompt、workflow 都是等价载体。这对到本 pipeline 刚好一一对应：**`/goal` 是内圈、契约是它的搜索机制、`/dec` 本来就是人工把关的机制设计器**。v4.6.0–v4.8.0 三版补上对照后缺的部分：
+
+| 论文机制 | saygoal 原本就有 | 这几版补上（v4.6.0–v4.8.0） |
+|---|---|---|
+| 内圈：propose → evaluate → keep/discard | `/goal`（Claude Code / Codex 内置） | — |
+| 赛前设计好的机制载体 | 契约；由 `/dec` 编译 | — |
+| 骗不过的 evaluator | 「运行 CMD **并贴出输出**」措辞；先查证再输出 | — |
+| 结构化搜索 trace | — | **trace 条款**（v4.6.0）：搜索型任务每 5 回合贴一行 search log |
+| Tabu Search——论文生成的最强机制 | — | **anti-fixation 条款**（v4.6.0）：验证已两败的做法不得重试 |
+| Level 2 外圈：读 trace → 诊断 → 重写机制 | — | **`/saygoal:retro`**（v4.7.0）：五类停滞诊断 → 结构性重写契约 |
+| 每次注入都 validate-and-revert | — | **`rollback:` 行**（v4.7.0）：每次重写都附原 condition 原文 |
+| 跨 run 持久记忆（EvoScientist 一脉） | — | **`.claude/saygoal.history.jsonl`**（v4.7.0）：retro 写入、`/dec` grilling 先读 |
+| Level 1.5 负结果：参数级调整没有增益 | — | retro 的硬规则（v4.7.0）：只准结构性重写——单纯加大回合上限是禁手 |
+| Group B 教训：冻结参数把正解墙在外面 | 反投机推导表自动并入约束 | retro 把自动并入的约束列为停滞的**头号嫌疑**（v4.7.0） |
+| loop 成本（出自配套的 loop engineering 长文，非论文本身） | 回合上限 | **验证成本感知的上限**（v4.8.0）：验证昂贵就下调上限，或逐回合改跑针对性验证、全套收尾跑 |
+
+> **与本 repo 一贯的诚实原则**：论文的 5× 标题数字是每组 n = 3、标准差达均值的 67%、单一 benchmark，且至少有一位读者回报复现失败。按本 repo 自己 [`EXPERIMENT.md`](./EXPERIMENT.md) 的标准（「任何 N = 3 的 LLM A/B 结论都应视为 uncertain until N ≥ 10」），这个数字当作未经证实。我们采用的是**架构模式**——trace、tabu、外圈重写、validate-and-revert——它们便宜且 fail-safe：非搜索型任务所有条款都不编入，每次重写都自带回退。
 
 ## 为什么规则档不是重点 — 实证
 

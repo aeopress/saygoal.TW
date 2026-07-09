@@ -70,7 +70,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - **不可改動**(Constraints):不得更動的行為/語義(public API、認證流程、輸出格式)
 - **可改路徑**(Write scope):允許寫 / 禁止碰的路徑
 - **外部系統限制**(Action policy):read-only / draft-only / 不得 send·deploy·merge
-- **最多幾回合**(預算):Claude 一律加回合上限;預設 `or stop after 20 turns`,依任務複雜度調整數字
+- **最多幾回合**(預算):Claude 一律加回合上限;預設 `or stop after 20 turns`,依任務複雜度**與驗證成本**調整——loop 成本 ≈ 回合數 × 每回合驗證成本,驗證昂貴(整包 e2e、長 benchmark、完整 build)時下調上限,或改編便宜的針對性驗證(如單一 spec 檔)逐回合跑、全套只在收尾跑一次
 
 ### 4. 任務脈絡 (Context) — 選配,有才寫
 一句話說明**為什麼做、任務壽命**:實驗還是正式功能、多久後可能刪、之後誰維護。這是給實作 agent 做判斷用的——約束只能列舉「不要做什麼」,脈絡讓它在約束沒預料到的情況下自己做對決定(「這是實驗,一個月後很可能刪掉——別建丟棄起來會心疼的東西」勝過「保持簡單」)。
@@ -85,7 +85,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 without [constraints,多條用 AND 串] or stop after [N] turns
 ```
 
-回合上限 N 預設 20、依任務複雜度調整——這個調整是你(編譯者)的判斷,condition 裡只出現定案的數字,不要把調整說明抄進字串。
+回合上限 N 預設 20、依任務複雜度與驗證成本調整(見 #3)——這個調整是你(編譯者)的判斷,condition 裡只出現定案的數字,不要把調整說明抄進字串。
 
 有任務脈絡(#4)時,在 condition 開頭放一短句(如 `context: this feature is a throwaway experiment —`),**一句為限**:脈絡是給實作 agent 讀的,evaluator 只 pattern-match until / without 部分,寫長了是雜訊。多子項規範時,在 until 段**最後一個驗證證據之後**併入差異報告要求——自報版:`… and paste a per-item completion report (implemented / deviated, deviations explained)`;grilling 選了 **workflow 獨立驗證**則改為 `… then run a verification workflow (one independent verifier per spec item, judging outcome against the spec) and paste its per-item report (implemented / deviated)`。後者由使用者親手貼進 `/goal`,正好構成 Workflow 工具需要的使用者明確 opt-in,實作 session 可以合法啟用。搜尋型任務時,trace 條款接在 until 段末尾、anti-fixation 條款串進 without 段(#2 的收斂護欄)。
 
@@ -131,7 +131,7 @@ loop 停滯暫停、或撞回合上限仍未收斂時,別把原 condition 直接
 - **`/codex:rescue`**(openai codex plugin):看本 session 的 available skills 清單有沒有 `codex:rescue`;不確定時備援 `jq -e '.plugins | has("codex@openai-codex")' ~/.claude/plugins/installed_plugins.json`
 - **`codex-agent`**(codex-orchestrator):`command -v codex-agent`
 
-**一個都沒偵測到** → 不提委派,只寫:確認後可依契約直接實作,或複製 #5 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。
+**一個都沒偵測到** → 不提委派,只寫:確認後可依契約直接實作,或複製 #5 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。額度緊時建議前者——loop 每回合重讀 context、重跑驗證;一次性實作照樣拿契約的驗證欄位當驗收清單。
 
 **偵測到至少一個** → 讀專案偏好檔 `.claude/saygoal.local.json`(格式 `{"delegate": "self-goal" | "codex-rescue" | "codex-agent"}`,不存在就當無偏好),然後用 **AskUserQuestion** 問執行通道——**每次都問,不因偏好跳過**(每次委派都花額度,單次否決權留給使用者);有偏好時把偏好通道排第一個選項標 `(Recommended)`;無偏好時把「自己 `/goal` loop」排第一、同樣標 `(Recommended)`。選項(只列偵測到的):
 
