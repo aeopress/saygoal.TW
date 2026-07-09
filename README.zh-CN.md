@@ -14,6 +14,7 @@
 
 - **`/dec <任务>`** 把你的任务改写成成功条件 + 验证指令 + 边界，并产出一条可直接粘贴的 **`/goal` condition**。
 - 把它贴进 Claude Code（或 Codex）内置的 **`/goal`**——一个小快模型每 turn 检查 transcript，盯着 agent 做到条件成立为止。
+- **`/saygoal:retro`**——`/goal` loop 停滞时，把 transcript 当搜索 trace 读、诊断卡点，结构性重写契约（修订版 condition＋一行 rollback）。
 
 **30 秒范例：**
 
@@ -111,7 +112,12 @@ Karpathy 最强的洞见其实是**用户端的纪律**，不是 LLM 自我约�
 2. 你 review 契约                  ← 人类确认方向
 3. 拷贝 #1 那条 /goal 指令粘贴     ← Haiku 接手当判官
 4. Claude 自主 loop 到收敛          ← Karpathy 说的「watch it go」
+5. loop 停滞？/saygoal:retro       ← 读 trace、重写契约（外圈）
 ```
+
+### loop 停滞时 —— `/saygoal:retro`，外圈
+
+`/goal` loop 可能停滞：撞到 `or stop after 20 turns` 时还在重提同一失败修法的变体。把原 condition 直接重挂是唯一保证没用的一招——[Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 的消融实验里，参数级调整没有可靠增益，整个 5× 效果都来自机制级重写。`/saygoal:retro` 就是这条 pipeline 的外圈：把停滞 session 的 transcript 当搜索 trace 读，判定停滞类别——验证断裂、门槛不可达、边界墙住正解（自动并入的约束列头号嫌疑）、固着、范围错置——然后结构性重写契约。输出是一条可直接粘贴的修订版 condition，外加一行 `rollback:` 照抄原版——坏的重写最多只花你一次粘贴。每次 retro 还会在 `.claude/saygoal.history.jsonl` 补一行记录，之后的 `/dec` grilling 会先读它——过去的停滞原因变成下一份契约的前置查证。
 
 ### 契约也是委派 prompt —— 与 Codex 委派工具协作
 

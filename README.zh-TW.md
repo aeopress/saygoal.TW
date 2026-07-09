@@ -14,6 +14,7 @@
 
 - **`/dec <任務>`** 把你的任務改寫成成功條件 + 驗證指令 + 邊界，並產出一條可直接貼上的 **`/goal` condition**。
 - 把它貼進 Claude Code（或 Codex）內建的 **`/goal`**——一個小快模型每 turn 檢查 transcript，盯著 agent 做到條件成立為止。
+- **`/saygoal:retro`**——`/goal` loop 停滯時，把 transcript 當搜尋 trace 讀、診斷卡點，結構性重寫契約（修訂版 condition＋一行 rollback）。
 
 **30 秒範例：**
 
@@ -111,7 +112,12 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 2. 你 review 契約                  ← 人類確認方向
 3. 複製 #1 那條 /goal 指令貼上     ← Haiku 接手當判官
 4. Claude 自主 loop 到收斂          ← Karpathy 說的「watch it go」
+5. loop 停滯？/saygoal:retro       ← 讀 trace、重寫契約（外圈）
 ```
+
+### loop 停滯時 —— `/saygoal:retro`，外圈
+
+`/goal` loop 可能停滯：撞到 `or stop after 20 turns` 時還在重提同一失敗修法的變體。把原 condition 直接重掛是唯一保證沒用的一招——[Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 的消融實驗裡，參數級調整沒有可靠增益，整個 5× 效果都來自機制級重寫。`/saygoal:retro` 就是這條 pipeline 的外圈：把停滯 session 的 transcript 當搜尋 trace 讀，判定停滯類別——驗證斷裂、門檻不可達、邊界牆住正解（自動併入的約束列頭號嫌疑）、固著、範圍錯置——然後結構性重寫契約。輸出是一條可直接貼上的修訂版 condition，外加一行 `rollback:` 照抄原版——壞的重寫最多只花你一次貼上。每次 retro 還會在 `.claude/saygoal.history.jsonl` 補一行紀錄，之後的 `/dec` grilling 會先讀它——過去的停滯原因變成下一份契約的前置查證。
 
 ### 契約也是委派 prompt —— 與 Codex 委派工具協作
 

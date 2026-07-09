@@ -14,6 +14,7 @@ English | [繁體中文（台灣）](./README.zh-TW.md) | [简体中文](./READM
 
 - **`/dec <task>`** rewrites your task into success criteria + a verification command + boundaries, and emits a ready-to-paste **`/goal` condition**.
 - Paste that into Claude Code's (or Codex's) built-in **`/goal`** — a small fast model checks the transcript after each turn and keeps the agent working until the condition holds.
+- **`/saygoal:retro`** — when a `/goal` loop stalls, reads the transcript as a search trace, diagnoses why, and structurally rewrites the contract (revised condition + a rollback line).
 
 **30-second example:**
 
@@ -111,7 +112,12 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
 2. you review the contract         ← human confirms direction
 3. paste the /goal line from #1    ← Haiku takes over as judge
 4. Claude loops to convergence     ← Karpathy's "watch it go"
+5. loop stalled? /saygoal:retro    ← reads the trace, rewrites the contract (the outer loop)
 ```
+
+### When the loop stalls — `/saygoal:retro`, the outer loop
+
+A `/goal` loop can stall: it hits `or stop after 20 turns` still re-proposing variations of the same failed fix. Re-pasting the same condition harder is the one move that reliably does nothing — in [Bilevel Autoresearch](https://arxiv.org/abs/2603.23420)'s ablation, parameter-level adjustment showed no reliable gain, while mechanism-level rewriting carried the entire 5× effect. `/saygoal:retro` is that outer loop for this pipeline: it reads the stalled session's transcript as a search trace, classifies the stall — broken verification, unreachable threshold, a boundary walling off the solution (auto-added constraints are the prime suspect), fixation, or a mis-scoped task — and structurally rewrites the contract. Output: a revised ready-to-paste condition plus a `rollback:` line carrying the original verbatim, so a bad rewrite never costs more than one paste. Each retro also appends one line to `.claude/saygoal.history.jsonl`, which future `/dec` grilling reads first — past stall reasons become the next contract's pre-checks.
 
 ### The contract is also a delegation prompt — pairing with Codex delegation tools
 

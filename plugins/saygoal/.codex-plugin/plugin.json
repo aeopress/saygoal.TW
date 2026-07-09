@@ -1,6 +1,6 @@
 {
   "name": "saygoal",
-  "version": "4.6.0",
+  "version": "4.7.0",
   "description": "Declarative reframing for Codex: turn imperative requests into a /goal contract — success criteria, verification commands, non-goals — distilled into a ready-to-use /goal condition.",
   "author": {
     "name": "yelban"

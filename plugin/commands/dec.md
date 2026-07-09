@@ -25,6 +25,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 
 契約只在「沒有未解問題」時才收斂。動手編之前,先盤出哪些欄位只能靠猜——成功門檻、驗證目標存不存在、可寫邊界、試探性範圍——把它們**問掉**,而不是標 `(assumed)` 帶過。
 
+- **有歷史先讀歷史**:專案存在 `.claude/saygoal.history.jsonl`(`/saygoal:retro` 的停滯紀錄)時先讀,同類任務先前的停滯原因(驗證目標不存在、門檻定錯、邊界過緊)直接列為本次先查證或先問的項目。
 - **一次只問一題**,每題附上你的建議答案;能用唯讀查碼回答的(測試檔在不在、script 有沒有在 package.json)就查碼,不要問。
 - **選項可枚舉的題目用 AskUserQuestion 問**(單選、建議答案放第一個選項並標 `(Recommended)`);自由值題(門檻數字、路徑)也可列 2–3 個建議選項,使用者能用 Other 自填。
 - **品味式約束要翻譯成脈絡,不能照抄**:使用者給的是「保持簡單」「別過度設計」「先快速做一版」這類品味式約束時,問出底層原因——這題選項固定,用 AskUserQuestion:**實驗性、可能短命** / **有期限壓力、先求能動** / **長期正式功能**——把答案編進任務脈絡(輸出 #4)。約束只能說「不要做什麼」;脈絡讓實作 agent 自己判斷約束沒預料到的情況。
@@ -99,7 +100,9 @@ without [constraints,多條用 AND 串] or stop after [N] turns
 condition 必須**自包含**:禁止「剛剛討論的」「如上所述」這類對話內指涉——這條字串會被複製到全新 session,讀者只看得到它本身。檔名、路徑、門檻全部寫死在字串裡。
 
 ### 何時暫停 (Pause-if) — 獨立列出,**不要塞進上面的 condition**
-Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會誤判為失敗而繼續 loop。改為:**獨立列出觸發情境,並建議使用者用 Stop hook 實作**(缺權限 / 需破壞性操作 / 需人工決策 / N 次失敗 / 文件衝突)。
+Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會誤判為失敗而繼續 loop。改為:**獨立列出觸發情境,並建議使用者用 Stop hook 實作**(缺權限 / 需破壞性操作 / 需人工決策 / 同一驗證連續 3 回合輸出相同失敗——停滯訊號 / 文件衝突)。
+
+loop 停滯暫停、或撞回合上限仍未收斂時,別把原 condition 直接重掛——用 `/saygoal:retro` 讀 transcript 診斷停滯類別、結構性重寫契約。
 
 ---
 
