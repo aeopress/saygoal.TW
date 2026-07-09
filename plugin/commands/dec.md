@@ -56,6 +56,13 @@ description: Reframe an imperative request as a declarative contract (success cr
 
 **多子項規範 → 逐項差異報告**:成功條件涵蓋多個子項(規範列了好幾條)時,驗證除了指令輸出,再加一條「貼出逐項實作報告:每個子項標 implemented / deviated,deviated 要說明差異」。報告本身是 evaluator 可 pattern-match 的證據,同時堵住「靜默偏離規範」——loop 收斂了但建的不是你要的東西。報告預設由實作者自報;使用者在 grilling 選了 **workflow 獨立驗證**,報告改由驗證 workflow 產生(condition 寫法見 #5)——自報的弱點是自己改的考卷自己打分數,獨立驗證者沒看過實作過程,抓得到自報抓不到的偏離。
 
+**搜尋型任務 → 收斂護欄**:任務要靠多輪「嘗試→驗證→再嘗試」才收斂(效能調校、flaky test 除錯、追 benchmark 數字)時,loop 的典型死法是同狀態下重提同一改法、連續失敗到回合上限——LLM 退回自身 priors(Bilevel Autoresearch, arXiv:2603.23420 的 trace 分析)。編譯時加兩條護欄(condition 寫法見 #5):
+
+- **trace 條款**(併入 until 段):`pasting every 5 turns a one-line search log: approaches tried → result → ruled out`——搜尋紀錄是 evaluator 可 pattern-match 的證據,也讓 transcript 保持可診斷。
+- **anti-fixation 條款**(併入 without 段):`without repeating an approach whose verification output has already failed twice`——重試必須換方向,不是換措辭。
+
+非搜尋型任務(單次修 bug、加功能)兩條都不加——是雜訊。
+
 ### 3. 邊界 (Boundaries)
 **只列與本任務相關的面,不相關的整塊省略——不要寫「N/A」或「無」。**
 
@@ -79,7 +86,7 @@ without [constraints,多條用 AND 串] or stop after [N] turns
 
 回合上限 N 預設 20、依任務複雜度調整——這個調整是你(編譯者)的判斷,condition 裡只出現定案的數字,不要把調整說明抄進字串。
 
-有任務脈絡(#4)時,在 condition 開頭放一短句(如 `context: this feature is a throwaway experiment —`),**一句為限**:脈絡是給實作 agent 讀的,evaluator 只 pattern-match until / without 部分,寫長了是雜訊。多子項規範時,在 until 段**最後一個驗證證據之後**併入差異報告要求——自報版:`… and paste a per-item completion report (implemented / deviated, deviations explained)`;grilling 選了 **workflow 獨立驗證**則改為 `… then run a verification workflow (one independent verifier per spec item, judging outcome against the spec) and paste its per-item report (implemented / deviated)`。後者由使用者親手貼進 `/goal`,正好構成 Workflow 工具需要的使用者明確 opt-in,實作 session 可以合法啟用。
+有任務脈絡(#4)時,在 condition 開頭放一短句(如 `context: this feature is a throwaway experiment —`),**一句為限**:脈絡是給實作 agent 讀的,evaluator 只 pattern-match until / without 部分,寫長了是雜訊。多子項規範時,在 until 段**最後一個驗證證據之後**併入差異報告要求——自報版:`… and paste a per-item completion report (implemented / deviated, deviations explained)`;grilling 選了 **workflow 獨立驗證**則改為 `… then run a verification workflow (one independent verifier per spec item, judging outcome against the spec) and paste its per-item report (implemented / deviated)`。後者由使用者親手貼進 `/goal`,正好構成 Workflow 工具需要的使用者明確 opt-in,實作 session 可以合法啟用。搜尋型任務時,trace 條款接在 until 段末尾、anti-fixation 條款串進 without 段(#2 的收斂護欄)。
 
 範例:
 ```

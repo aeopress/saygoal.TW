@@ -75,6 +75,8 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 **多子項規範 → 逐項差異報告**：規範列了多個子項時，契約會把驗證延伸為「貼出逐項實作報告：每項標 implemented / deviated 並說明差異」——對應 Thariq 的 "prepare a report on what was implemented and if anything differed"。報告是 evaluator 可 pattern-match 的證據，也堵住最隱蔽的失敗模式：loop 收斂了，但建的不是你要的東西。報告預設由實作者自報；Claude 版在多子項時 grilling 會多問一題，可升級為 **workflow 獨立驗證**——每個子項派一個獨立驗證 agent、只對照規範與成果、不看實作過程——正是 Thariq 的 "use a workflow to verify each part of the plan"。獨立驗證可信（自報是自己改考卷）但較花 token，所以做成選項、預設自報。
 
+**搜尋型任務 → 收斂護欄**：任務要靠多輪「嘗試→驗證→再嘗試」才收斂（效能調校、flaky test 除錯、追 benchmark 數字）時，loop 的典型死法是同狀態下重提同一改法、連續失敗到回合上限——LLM 退回自身 priors。這正是 [Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 在 Karpathy 自己的 pretraining benchmark 上記錄到的失敗模式，而它的解法——打破內圈的固定搜尋模式——搬到 `/dec` 上就是以契約為機制載體：編譯出的 condition 會多兩條護欄——until 段的 **trace 條款**（`pasting every 5 turns a one-line search log: approaches tried → result → ruled out`），讓 transcript 保持可診斷的搜尋紀錄；without 段的 **anti-fixation 條款**（`without repeating an approach whose verification output has already failed twice`），相當於論文 Tabu Search 機制的 prompt 版。非搜尋型任務兩條都不加：在那裡它們是雜訊。
+
 ### `/dec` 當作 `/goal` 的「邊界設定器」
 
 `/goal` 的效果完全取決於你給它的 condition 字串。寫不好的 condition 永遠不會收斂：
