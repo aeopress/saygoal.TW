@@ -1,0 +1,1 @@
+In src/config.py, make parse_config return an empty dict instead of raising FileNotFoundError when the config file is missing. There is an existing test at tests/test_config.py.

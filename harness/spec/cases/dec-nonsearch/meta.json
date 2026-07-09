@@ -1,0 +1,4 @@
+{
+  "command": "dec",
+  "intent": "deterministic single-fix task → guardrails must be ABSENT (they would be noise). The absence test for v4.6.0."
+}

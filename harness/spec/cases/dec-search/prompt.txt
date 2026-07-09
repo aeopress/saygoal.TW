@@ -1,0 +1,1 @@
+Speed up the GET /search endpoint so p95 latency is under 200 ms under the load in scripts/bench.sh.

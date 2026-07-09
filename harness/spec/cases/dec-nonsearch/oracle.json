@@ -1,0 +1,11 @@
+{
+  "must_contain": [
+    {"signal": "turn cap", "regex": "(?i)stop after \\d+ turns"},
+    {"signal": "runnable verification (paste output)", "regex": "(?i)paste|output"}
+  ],
+  "must_not_contain": [
+    {"signal": "trace clause (should be absent)", "regex": "(?i)search log|every 5 turns"},
+    {"signal": "anti-fixation clause (should be absent)", "regex": "(?i)failed twice"}
+  ],
+  "notes": "A single deterministic fix with an existing test — not a multi-round search. The guardrails must NOT appear."
+}

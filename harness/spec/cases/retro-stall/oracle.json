@@ -1,0 +1,13 @@
+{
+  "must_contain": [
+    {"signal": "stall-class diagnosis", "regex": "(?i)固著|fixation|停滯|stall|範圍錯置|邊界"},
+    {"signal": "cites the fixation evidence (same cache approach retried)", "regex": "(?i)cache|LRU|maxsize|same|重複|同一"},
+    {"signal": "rollback line", "regex": "(?i)rollback"},
+    {"signal": "revised condition targets the untouched bottleneck", "regex": "(?i)tokeniz|re-?tokeniz"},
+    {"signal": "revised /goal condition emitted", "regex": "(?i)stop after \\d+ turns"}
+  ],
+  "must_not_contain": [
+    {"signal": "must not merely bump the turn cap as the fix", "regex": "(?i)just (raise|increase|bump).{0,20}turn cap"}
+  ],
+  "notes": "Fixation on the cache while the real bottleneck (re-tokenization) sat untouched. Retro should name the stall class, reuse the trace evidence, redirect the contract toward tokenize.py, and ship a rollback line with the original condition."
+}

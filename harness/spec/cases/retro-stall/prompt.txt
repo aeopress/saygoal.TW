@@ -1,0 +1,14 @@
+The loop ran in another session and hit the turn cap without converging. Here is the original condition and the per-turn log.
+
+Original /goal condition:
+  run `pytest tests/test_search.py::test_p95 -q` until it paste-shows "p95 < 200ms"
+  without changing the public search() signature or any file outside src/search/
+  or stop after 20 turns
+
+Per-turn log (all 20 turns):
+  turn 1: added an in-memory LRU cache to search() → p95 measured 240ms → FAIL
+  turn 2: increased the LRU cache maxsize from 128 to 512 → p95 240ms → FAIL
+  turn 3: increased the LRU cache maxsize from 512 to 2048 → p95 238ms → FAIL
+  turn 4: increased the LRU cache maxsize from 2048 to 8192 → p95 239ms → FAIL
+  turns 5-20: kept enlarging the LRU cache and tweaking its eviction; p95 stayed 238-241ms every turn → FAIL
+Final: 20 consecutive FAILs, p95 never moved below ~238ms. The bottleneck (per a profiler line in the log) is a per-request re-tokenization step outside the cache, in src/search/tokenize.py — which the loop never touched.

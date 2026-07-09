@@ -1,0 +1,10 @@
+{
+  "must_contain": [
+    {"signal": "trace clause", "regex": "(?i)search log|every 5 turns"},
+    {"signal": "anti-fixation clause", "regex": "(?i)failed twice|repeat(ing)? an approach"},
+    {"signal": "turn cap", "regex": "(?i)stop after \\d+ turns"},
+    {"signal": "runnable verification (paste output)", "regex": "(?i)paste|output"}
+  ],
+  "must_not_contain": [],
+  "notes": "Threshold (200ms) and bench script are both given, so /dec should compile directly without grilling. Search-type task → both guardrails expected."
+}

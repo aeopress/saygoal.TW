@@ -1,0 +1,1 @@
+Refactor the checkout flow in src/checkout/ without changing behavior. The only test coverage is a full end-to-end suite (make e2e) that takes about 40 minutes per run.
