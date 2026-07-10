@@ -182,14 +182,19 @@ Then use `/saygoal:dec <task>`. The built-in `/goal` is always available — no 
 
 ### Codex
 
-From the cloned repo root:
+Install straight from GitHub (mirrors the Claude Code marketplace command):
 
 ```
-codex plugin marketplace add .
+codex plugin marketplace add aeopress/saygoal.TW
 codex plugin add saygoal@saygoal
 ```
 
+Or from a cloned repo root, swap the first line for `codex plugin marketplace add .`.
+
 Then use `$dec <task>` (or pick it from `/skills`), and paste the generated `/goal "..."` into Codex's built-in `/goal`.
+
+- **Update**: `codex plugin marketplace upgrade saygoal`, then re-run `codex plugin add saygoal@saygoal`.
+- **Remove**: `codex plugin remove saygoal@saygoal`, then `codex plugin marketplace remove saygoal`.
 
 <details>
 <summary><b>Advanced</b> — short <code>/dec</code>, the optional <code>CLAUDE.md</code> rules, auto-update, Cursor</summary>

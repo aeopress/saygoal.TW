@@ -95,14 +95,19 @@ OpenAI の Codex CLI も自前の `/goal` を持っています（実は Claude 
 
 ### Codex
 
-clone したリポジトリの中で：
+GitHub から直接インストール（Claude Code の marketplace コマンドと対称）：
 
 ```
-codex plugin marketplace add .
+codex plugin marketplace add aeopress/saygoal.TW
 codex plugin add saygoal@saygoal
 ```
 
+または clone したリポジトリの root で、1 行目を `codex plugin marketplace add .` に置き換えても構いません。
+
 `$dec <やりたいこと>`（または `/skills` から選択）で使って、出てきた `/goal "..."` を Codex の `/goal` に貼ってください。
+
+- **更新**：`codex plugin marketplace upgrade saygoal` のあと `codex plugin add saygoal@saygoal` を再実行。
+- **削除**：`codex plugin remove saygoal@saygoal` のあと `codex plugin marketplace remove saygoal`。
 
 <details>
 <summary><b>応用</b> — 短い <code>/dec</code>、おまけの <code>CLAUDE.md</code> ルール、自動更新、Cursor</summary>

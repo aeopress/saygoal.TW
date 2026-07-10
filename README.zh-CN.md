@@ -182,14 +182,19 @@ OpenAI 的 Codex CLI 比 Claude Code 早 11 天，在 [v0.128.0（2026-04-30）]
 
 ### Codex
 
-clone 本 repo 后、在 root 运行：
+直接从 GitHub 安装（与 Claude Code 的 marketplace 指令对称）：
 
 ```
-codex plugin marketplace add .
+codex plugin marketplace add aeopress/saygoal.TW
 codex plugin add saygoal@saygoal
 ```
 
+或先 clone 本 repo，把第一行换成 `codex plugin marketplace add .`（在 repo root 运行）。
+
 用 `$dec <任务>`（或从 `/skills` 选），再把产出的 `/goal "..."` 贴进 Codex 内置 `/goal`。
+
+- **更新**：`codex plugin marketplace upgrade saygoal`，再重跑 `codex plugin add saygoal@saygoal`。
+- **移除**：`codex plugin remove saygoal@saygoal`，再 `codex plugin marketplace remove saygoal`。
 
 <details>
 <summary><b>进阶</b> — 短 <code>/dec</code>、可选的 <code>CLAUDE.md</code> 规则、自动更新、Cursor</summary>
