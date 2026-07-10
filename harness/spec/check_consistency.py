@@ -131,6 +131,17 @@ check("no mistyped history-path variant", not variant_files,
       f"variants in: {variant_files}" if variant_files else "clean")
 
 
+# ------------------------------------------------ delegation channels (v4.9.0)
+# The bare `codex exec` channel must be wired end to end: detected in dec.md,
+# present in the preference enum, and documented in every README.
+check("dec.md detects the codex exec channel", "`command -v codex`" in dec,
+      "" if "`command -v codex`" in dec else "missing `command -v codex`")
+check("dec.md preference enum includes codex-exec", '"codex-exec"' in dec)
+missing_deleg = [r for r in ALL_READMES if "codex exec" not in read(r)]
+check("every README documents the codex exec delegation channel",
+      not missing_deleg, f"missing in: {missing_deleg}" if missing_deleg else "all four")
+
+
 # --------------------------------------------------- README literal freshness
 # The READMEs that quote the compiled clause must quote the *current* clause.
 stale = [r for r in READMES_QUOTING if ANTI_FIXATION not in read(r)]

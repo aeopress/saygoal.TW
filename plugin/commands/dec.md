@@ -130,20 +130,26 @@ loop 停滯暫停、或撞回合上限仍未收斂時,別把原 condition 直接
 
 - **`/codex:rescue`**(openai codex plugin):看本 session 的 available skills 清單有沒有 `codex:rescue`;不確定時備援 `jq -e '.plugins | has("codex@openai-codex")' ~/.claude/plugins/installed_plugins.json`
 - **`codex-agent`**(codex-orchestrator):`command -v codex-agent`
+- **`codex exec`**(裸 codex CLI,最通用、依賴最少——只要裝了 codex CLI 即可,無需任何額外 plugin):`command -v codex`
 
 **一個都沒偵測到** → 不提委派,只寫:確認後可依契約直接實作,或複製 #5 貼入 `/goal` 讓 Claude Code 自動 loop 到收斂(需 v2.1.139+)。額度緊時建議前者——loop 每回合重讀 context、重跑驗證;一次性實作照樣拿契約的驗證欄位當驗收清單。
 
-**偵測到至少一個** → 讀專案偏好檔 `.claude/saygoal.local.json`(格式 `{"delegate": "self-goal" | "codex-rescue" | "codex-agent"}`,不存在就當無偏好),然後用 **AskUserQuestion** 問執行通道——**每次都問,不因偏好跳過**(每次委派都花額度,單次否決權留給使用者);有偏好時把偏好通道排第一個選項標 `(Recommended)`;無偏好時把「自己 `/goal` loop」排第一、同樣標 `(Recommended)`。選項(只列偵測到的):
+**偵測到至少一個** → 讀專案偏好檔 `.claude/saygoal.local.json`(格式 `{"delegate": "self-goal" | "codex-rescue" | "codex-agent" | "codex-exec"}`,不存在就當無偏好),然後用 **AskUserQuestion** 問執行通道——**每次都問,不因偏好跳過**(每次委派都花額度,單次否決權留給使用者);有偏好時把偏好通道排第一個選項標 `(Recommended)`;無偏好時把「自己 `/goal` loop」排第一、同樣標 `(Recommended)`。選項(只列偵測到的):
 
 1. **自己 `/goal` loop**:輸出 #5 讓使用者貼(維持 `/dec` 不實作的邊界)
 2. **委派 `/codex:rescue`**:把契約 #1–#4 全文(不含 `/goal` 前綴)交給 Codex 背景執行
 3. **委派 `codex-agent`**:同上,適合多份契約平行 fan-out
+4. **委派 `codex exec`**:最通用的 fallback——只要有 codex CLI 即可,不需裝 plugin;適合 `/codex:rescue`、`codex-agent` 都不可用的環境。背景直呼、由 Claude 原生背景 task 追蹤運行狀態
 
 使用者選定後:
 
 - 選擇與偏好檔不同(或首次)→ 把新偏好寫回 `.claude/saygoal.local.json`;該檔未被 gitignore 時提醒一句(不要擅自改 `.gitignore`)。
 - 選 1 → 輸出 #5,結束。
-- 選 2 或 3 → **直接派發,不再確認**(剛才的選擇就是確認):選 2 用 **Skill 工具**叫用 `codex:rescue`、args 為 `--background <契約全文>`(不是 Bash);選 3 用 Bash 跑 `codex-agent start "<契約全文>"`。派發後回報 job/thread 資訊與收割方式(`/codex:status`+`/codex:result`,或 `codex-agent await-turn` + `output`),並提醒:收割時照契約 Verification 驗收、多子項看差異報告——只讀最終輸出,過程不回灌。
+- 選 2 / 3 / 4 → **直接派發,不再確認**(剛才的選擇就是確認):
+  - 選 2 用 **Skill 工具**叫用 `codex:rescue`、args 為 `--background <契約全文>`(不是 Bash);收割 `/codex:status` + `/codex:result`。
+  - 選 3 用 Bash 跑 `codex-agent start "<契約全文>"`;收割 `codex-agent await-turn` + `output`。
+  - 選 4 用 Bash 跑 `codex exec -C <repo 根> --sandbox workspace-write --json "<契約全文>"`,帶 `run_in_background: true`。**運行狀態把手**:背景 task ID 即 job 代號、`--json` 讓 output 是 JSONL 事件流(Read 它查 codex 當前進度)、完成會自動通知、卡太久用 **TaskStop** 中止並收回自己做——這組原生機制對應 codex-orchestrator 的 PID + exitcode + JSONL log 追蹤,由 Claude 背景 task 免費提供。需網路:Claude 在 sandbox 下要放行(失敗多半是網路被擋)。收割讀 output 尾的最終 assistant 訊息(或派發時加 `-o <檔>` 單獨落最終訊息)。
+- 派發後回報 job/task 資訊與對應收割方式,並提醒:收割時照契約 Verification 驗收、多子項看差異報告——只讀最終輸出,過程不回灌。
 
 委派是**調度**,不違反本 command 的「不要實作」:實作發生在被委派的模型,且以使用者當下的明確選擇為前提。
 

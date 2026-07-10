@@ -125,8 +125,9 @@ Karpathy 最强的洞见其实是**用户端的纪律**，不是 LLM 自我约�
 
 - **[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc)**（`/codex:rescue`）：`/dec` 先把模糊需求编成契约，再 `/codex:rescue --background <契约全文>` 丢给 Codex 后台执行。收割（`/codex:result`）时照契约的验证字段验收；逐项差异报告让你只读最终输出就能判断有没有偏离，不用回看过程。
 - **[codex-orchestrator](https://github.com/yelban/codex-orchestrator)**（`codex-agent` CLI）：并行 fan-out 多个任务时，每个 `codex-agent start "<契约>"` 都带着自己的验证与边界；`await-turn` 收割后照 Verification 验收即可。
+- **`codex exec`**（裸 codex CLI——最通用的通道，不需装任何 plugin）：把 `codex exec -C <repo> --sandbox workspace-write --json "<契约>"` 当后台 task 派发。后台 task ID、`--json` 事件流、完成通知、TaskStop 就是运行状态追踪——等同 codex-orchestrator 包装的 PID + exitcode + JSONL log，由 Claude 后台 task 原生提供。这是 `/codex:rescue`、`codex-agent` 都不可用时的最低共同标准 fallback（需网络——Claude 在 sandbox 下要放行）。
 
-Claude 版的 `/dec` 会把这件事自动化：契约输出后检测这两个工具（看 session 的 skills 清单、`command -v codex-agent`），检测到就用 AskUserQuestion 问执行通道——自己 `/goal` loop，还是委派出去。你的选择记在项目的 `.claude/saygoal.local.json`，下次排在第一个选项；但**每次仍会问**（每次委派都花额度，单次否决权留在你手上）。选了委派就当场后台派发，收割时照契约的验证字段验收。都没安装就不会提委派，行为与从前相同。
+Claude 版的 `/dec` 会把这件事自动化：契约输出后检测这几个通道（看 session 的 skills 清单、`command -v codex-agent`、`command -v codex`），检测到就用 AskUserQuestion 问执行通道——自己 `/goal` loop，还是委派出去。你的选择记在项目的 `.claude/saygoal.local.json`，下次排在第一个选项；但**每次仍会问**（每次委派都花额度，单次否决权留在你手上）。选了委派就当场后台派发，收割时照契约的验证字段验收。都没安装就不会提委派，行为与从前相同。
 
 分工是上下游：`/dec` 管「契约写得够不够收敛」，委派工具管「谁去执行、怎么并行」。同一份契约，贴 `/goal` 是自己 loop 到绿灯，交给委派工具是外包给另一个模型——验收标准不变。
 

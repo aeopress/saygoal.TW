@@ -59,7 +59,7 @@ Karpathy の「成功条件を渡して、あとは見ていろ」という言�
 
 **ループが行き詰まったら `/saygoal:retro`（外側のループ）**：`/goal` がターン上限まで同じ修正の言い換えを繰り返して終わってしまうことがあります。そこで同じ condition をもう一度貼るのは、一番効かない手です——先ほどの論文の実験でも、パラメータ調整には効果がなく、探索の仕組みそのものを書き換えることが 5 倍の改善のすべてでした。`/saygoal:retro` は transcript を読んで行き詰まりの原因（検証が壊れている／しきい値が高すぎる／制約が正解の方向を塞いでいる／同じ手への固着／タスクの誤解）を診断し、契約を構造から書き直します。修正版 condition と、元の condition をそのまま残した rollback 行がセットなので、書き直しが外れても貼り直し 1 回で戻せます。診断結果は `.claude/saygoal.history.jsonl` に 1 行ずつ残り、次の `/dec` が最初に読みます。
 
-ちなみに、この契約はそのまま**委任プロンプト**にもなります。[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) の `/codex:rescue` や [codex-orchestrator](https://github.com/yelban/codex-orchestrator) の `codex-agent start` に契約の全文を渡せば、検証条件と完了判定つきのタスクとして別モデルに外注できます。`/goal` に貼れば自分でループ、委任ツールに渡せば外注——合格ラインはどちらでも同じです。Claude 版の `/dec` はここまで自動でやってくれます：契約を出したあとにツールの有無を検出し、見つかれば「自分で `/goal` するか、委任するか」を選択肢で確認。選んだ答えはプロジェクトの `.claude/saygoal.local.json` に覚えて次回は先頭候補にしますが、確認自体は毎回入ります（外注のたびにクォータを使うので、拒否権はあなたの手元に）。
+ちなみに、この契約はそのまま**委任プロンプト**にもなります。[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) の `/codex:rescue`、[codex-orchestrator](https://github.com/yelban/codex-orchestrator) の `codex-agent start`、あるいは素の `codex exec`（プラグイン不要で一番汎用的なチャネル。バックグラウンド task として投げれば、task id・`--json` イベントストリーム・完了通知・TaskStop がそのまま実行ステータスの追跡になります）に契約の全文を渡せば、検証条件と完了判定つきのタスクとして別モデルに外注できます。`/goal` に貼れば自分でループ、委任ツールに渡せば外注——合格ラインはどちらでも同じです。Claude 版の `/dec` はここまで自動でやってくれます：契約を出したあとにツールの有無を検出し、見つかれば「自分で `/goal` するか、委任するか」を選択肢で確認。選んだ答えはプロジェクトの `.claude/saygoal.local.json` に覚えて次回は先頭候補にしますが、確認自体は毎回入ります（外注のたびにクォータを使うので、拒否権はあなたの手元に）。
 
 ### 地味だけど大事：Claude の評価役は「会話の中身しか見ない」
 

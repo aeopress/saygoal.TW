@@ -125,8 +125,9 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 - **[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc)**（`/codex:rescue`）：`/dec` 先把模糊需求編成契約，再 `/codex:rescue --background <契約全文>` 丟給 Codex 背景執行。收割（`/codex:result`）時照契約的驗證欄位驗收；逐項差異報告讓你只讀最終輸出就能判斷有沒有偏離，不用回看過程。
 - **[codex-orchestrator](https://github.com/yelban/codex-orchestrator)**（`codex-agent` CLI）：平行 fan-out 多個任務時，每個 `codex-agent start "<契約>"` 都帶著自己的驗證與邊界；`await-turn` 收割後照 Verification 驗收即可。
+- **`codex exec`**（裸 codex CLI——最通用的通道，不需裝任何 plugin）：把 `codex exec -C <repo> --sandbox workspace-write --json "<契約>"` 當背景 task 派發。背景 task ID、`--json` 事件流、完成通知、TaskStop 就是運行狀態追蹤——等同 codex-orchestrator 包裝的 PID + exitcode + JSONL log，由 Claude 背景 task 原生提供。這是 `/codex:rescue`、`codex-agent` 都不可用時的最低共同標準 fallback（需網路——Claude 在 sandbox 下要放行）。
 
-Claude 版的 `/dec` 會把這件事自動化：契約輸出後偵測這兩個工具（看 session 的 skills 清單、`command -v codex-agent`），偵測到就用 AskUserQuestion 問執行通道——自己 `/goal` loop，還是委派出去。你的選擇記在專案的 `.claude/saygoal.local.json`，下次排在第一個選項；但**每次仍會問**（每次委派都花額度，單次否決權留在你手上）。選了委派就當場背景派發，收割時照契約的驗證欄位驗收。都沒安裝就不會提委派，行為與從前相同。
+Claude 版的 `/dec` 會把這件事自動化：契約輸出後偵測這幾個通道（看 session 的 skills 清單、`command -v codex-agent`、`command -v codex`），偵測到就用 AskUserQuestion 問執行通道——自己 `/goal` loop，還是委派出去。你的選擇記在專案的 `.claude/saygoal.local.json`，下次排在第一個選項；但**每次仍會問**（每次委派都花額度，單次否決權留在你手上）。選了委派就當場背景派發，收割時照契約的驗證欄位驗收。都沒安裝就不會提委派，行為與從前相同。
 
 分工是上下游：`/dec` 管「契約寫得夠不夠收斂」，委派工具管「誰去執行、怎麼平行」。同一份契約，貼 `/goal` 是自己 loop 到綠燈，交給委派工具是外包給另一顆模型——驗收標準不變。
 
