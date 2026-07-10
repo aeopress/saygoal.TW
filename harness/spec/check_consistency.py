@@ -7,7 +7,8 @@ behavioral eval is too expensive and too noisy to guard against — version
 drift across manifests, the Claude command and Codex skill falling out of
 sync, READMEs quoting a stale version of a compiled clause, dangling command
 references, and a mistyped history-file path that would silently break the
-/dec ↔ /retro handoff.
+/dec ↔ /retro handoff. It also pins the Codex-only execute-goal delegation
+contract and its custom writer-agent template.
 
 Usage:
   python3 harness/spec/check_consistency.py         # report + exit 1 on any fail
@@ -19,6 +20,7 @@ literal-freshness check deliberately excludes README.ja.md.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -54,6 +56,115 @@ def check(name, ok, detail=""):
 
 def read(rel):
     return (ROOT / rel).read_text(encoding="utf-8")
+
+
+def markdown_section(text, heading):
+    """Return one level-2 Markdown section without later peer sections."""
+    marker = f"## {heading}"
+    start = text.find(marker)
+    if start == -1:
+        return ""
+    start += len(marker)
+    next_heading = re.search(r"(?m)^## ", text[start:])
+    end = start + next_heading.start() if next_heading else len(text)
+    return text[start:end]
+
+
+def active_toml_string(text, key):
+    """Read one active, single-line TOML string assignment (never comments)."""
+    outside_multiline = []
+    multiline_delimiter = None
+    for line in text.splitlines():
+        if multiline_delimiter:
+            if multiline_delimiter in line:
+                multiline_delimiter = None
+            continue
+        delimiter = next((d for d in ('"""', "'''") if d in line), None)
+        if delimiter:
+            outside_multiline.append(line.split(delimiter, 1)[0])
+            if line.count(delimiter) % 2:
+                multiline_delimiter = delimiter
+            continue
+        outside_multiline.append(line)
+
+    match = re.search(
+        rf'(?m)^[ \t]*{re.escape(key)}[ \t]*=[ \t]*"([^"\r\n]+)"[ \t]*(?:#.*)?$',
+        "\n".join(outside_multiline),
+    )
+    return match.group(1) if match else None
+
+
+def execute_goal_invariants(execute, writer):
+    """Public workflow invariants, grouped by the section that owns them."""
+    preconditions = markdown_section(execute, "Preconditions")
+    preflight = markdown_section(execute, "Preflight")
+    activation = markdown_section(execute, "Activate the goal")
+    delegation = markdown_section(execute, "Delegate implementation")
+    verification = markdown_section(execute, "Verify independently")
+    unsafe_directives = re.sub(
+        r"(?i)(?:do not|never)\s+spawn\s+parallel\s+writers?",
+        "",
+        execute,
+    )
+    unsafe_extra_writer = re.search(
+        r"(?i)spawn[^\n]*(?:second|two|another|parallel)[^\n]*writer",
+        unsafe_directives,
+    )
+
+    return {
+        "confirmed_contract": (
+            "- the user has not explicitly confirmed the contract;" in preconditions
+            and "Pause without editing" in preconditions
+        ),
+        "parent_goal": (
+            "Call `get_goal` first." in activation
+            and "call `create_goal`" in activation
+            and "Call `update_goal`" in verification
+        ),
+        "single_pinned_writer": (
+            "Spawn exactly one subagent using the custom agent type `saygoal_writer`."
+            in delegation
+            and "do not spawn parallel writers" in delegation.lower()
+            and unsafe_extra_writer is None
+        ),
+        "no_unpinned_fallback": (
+            "Do not fall back" in preconditions
+            and "Pause without editing" in preconditions
+        ),
+        "independent_verification": (
+            "Rerun the contract's declared verification in the parent thread."
+            in verification
+            and "Do not accept the writer's claim as evidence by itself."
+            in verification
+        ),
+        "writer_model": (
+            active_toml_string(writer, "model") == "gpt-5.6-sol"
+            and active_toml_string(writer, "model_reasoning_effort") == "high"
+        ),
+        "writer_safety": (
+            active_toml_string(writer, "sandbox_mode") == "workspace-write"
+            and "Do not spawn subagents" in writer
+        ),
+        "effective_writer_identity": (
+            'model = "gpt-5.6-sol"' in preflight
+            and 'model_reasoning_effort = "high"' in preflight
+            and 'sandbox_mode = "workspace-write"' in preflight
+            and "exactly one matching definition" in preflight.lower()
+            and "normalized full effective definition, including"
+            in preflight.lower()
+            and "byte-for-byte" in preflight.lower()
+        ),
+        "dirty_baseline": (
+            "`git diff --binary`" in preflight
+            and "`git diff --cached --binary`" in preflight
+            and "content hashes for every untracked path" in preflight
+            and "overlaps a pre-existing dirty path" in preflight
+        ),
+        "effective_workspace": (
+            "current effective sandbox mode is exactly `workspace-write`"
+            in preflight
+        ),
+    }
 
 
 # ---------------------------------------------------------------- version sync
@@ -103,6 +214,8 @@ check("trace-log clause mirrored: dec.md ↔ SKILL.md",
 check("verification-cost rule mirrored: dec.md ↔ SKILL.md",
       "驗證成本" in dec and "verification cost" in skill.lower(),
       f"dec={'驗證成本' in dec} skill={'verification cost' in skill.lower()}")
+check("Codex dec offers execute-goal only after confirmation",
+      "$execute-goal" in skill and "do not invoke it automatically" in skill.lower())
 
 
 # ---------------------------------------------------------- retro completeness
@@ -140,6 +253,77 @@ check("dec.md preference enum includes codex-exec", '"codex-exec"' in dec)
 missing_deleg = [r for r in ALL_READMES if "codex exec" not in read(r)]
 check("every README documents the codex exec delegation channel",
       not missing_deleg, f"missing in: {missing_deleg}" if missing_deleg else "all four")
+
+
+# ----------------------------------------- Codex execute-goal seam (v4.10.0)
+execute_path = ROOT / "plugins/saygoal/skills/execute-goal/SKILL.md"
+writer_path = execute_path.parent / "references/saygoal-writer.toml"
+check("Codex execute-goal skill is present & non-empty",
+      execute_path.exists() and execute_path.stat().st_size > 0,
+      "" if execute_path.exists() else "missing")
+check("pinned saygoal writer template is present & non-empty",
+      writer_path.exists() and writer_path.stat().st_size > 0,
+      "" if writer_path.exists() else "missing")
+
+if execute_path.exists() and writer_path.exists():
+    execute = execute_path.read_text(encoding="utf-8")
+    writer = writer_path.read_text(encoding="utf-8")
+    invariants = execute_goal_invariants(execute, writer)
+
+    check("execute-goal requires an explicitly confirmed contract",
+          invariants["confirmed_contract"])
+    check("execute-goal owns the parent /goal lifecycle",
+          invariants["parent_goal"])
+    check("execute-goal dispatches exactly one pinned writer",
+          invariants["single_pinned_writer"])
+    check("execute-goal refuses an unpinned worker fallback",
+          invariants["no_unpinned_fallback"])
+    check("execute-goal independently verifies writer output",
+          invariants["independent_verification"])
+    check("writer pins gpt-5.6-sol at high reasoning", invariants["writer_model"])
+    check("writer is workspace-write and cannot delegate further",
+          invariants["writer_safety"])
+    check("execute-goal verifies the effective writer identity",
+          invariants["effective_writer_identity"])
+    check("execute-goal preserves a content-complete dirty baseline",
+          invariants["dirty_baseline"])
+    check("execute-goal requires effective workspace-write",
+          invariants["effective_workspace"])
+
+    contradictory_execute = execute.replace(
+        "do not spawn parallel writers.", "spawn a second writer."
+    )
+    commented_model = writer.replace(
+        'model = "gpt-5.6-sol"', '# model = "gpt-5.6-sol"'
+    )
+    self_report_only = execute.replace(
+        "Rerun the contract's declared verification in the parent thread.",
+        "Accept the writer's verification report.",
+    )
+    confirmation_guard_removed = execute.replace(
+        "- the user has not explicitly confirmed the contract;", ""
+    )
+    model_only_in_instructions = commented_model.replace(
+        'developer_instructions = """',
+        'developer_instructions = """\nmodel = "gpt-5.6-sol"',
+    )
+    check("execute-goal negative control rejects a second writer",
+          not execute_goal_invariants(contradictory_execute, writer)["single_pinned_writer"])
+    check("execute-goal negative control rejects a commented model pin",
+          not execute_goal_invariants(execute, commented_model)["writer_model"])
+    check("execute-goal negative control rejects self-report-only verification",
+          not execute_goal_invariants(self_report_only, writer)["independent_verification"])
+    check("execute-goal negative control rejects a missing confirmation guard",
+          not execute_goal_invariants(confirmation_guard_removed, writer)["confirmed_contract"])
+    check("execute-goal negative control ignores model text inside instructions",
+          not execute_goal_invariants(execute, model_only_in_instructions)["writer_model"])
+
+check("Claude plugin has no execute-goal command",
+      not (ROOT / "plugin/commands/execute-goal.md").exists())
+missing_execute_docs = [r for r in ALL_READMES if "$execute-goal" not in read(r)]
+check("every README documents the Codex-only execute-goal skill",
+      not missing_execute_docs,
+      f"missing in: {missing_execute_docs}" if missing_execute_docs else "all four")
 
 
 # --------------------------------------------------- README literal freshness

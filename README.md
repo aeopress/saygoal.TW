@@ -193,6 +193,10 @@ Or from a cloned repo root, swap the first line for `codex plugin marketplace ad
 
 Then use `$dec <task>` (or pick it from `/skills`), and paste the generated `/goal "..."` into Codex's built-in `/goal`.
 
+For optional pinned execution, explicitly confirm that contract and invoke `$execute-goal`. On first use it detects whether the bundled `saygoal_writer` custom-agent template is installed and offers project-scoped (`.codex/agents/`) or personal (`~/.codex/agents/`) setup; start a new thread after setup, then invoke it again. It activates the parent `/goal`, delegates to exactly one `gpt-5.6-sol` writer at `high` reasoning, and independently reruns verification.
+
+`$execute-goal` never silently substitutes an unpinned model. If that exact model or custom-agent selection is unavailable, it pauses before editing. This is Codex-only; the Claude Code `/saygoal:dec` command is unchanged.
+
 - **Update**: `codex plugin marketplace upgrade saygoal`, then re-run `codex plugin add saygoal@saygoal`.
 - **Remove**: `codex plugin remove saygoal@saygoal`, then `codex plugin marketplace remove saygoal`.
 

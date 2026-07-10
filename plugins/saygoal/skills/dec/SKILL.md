@@ -99,4 +99,4 @@ task; 3 consecutive verifications fail without a new approach.
 
 ---
 
-After output, wait for the user to confirm. On confirmation, the user pastes the generated `/goal` block into Codex CLI.
+After output, wait for the user to confirm. On confirmation, the user may invoke `$execute-goal` with the confirmed block for pinned-writer execution or paste the generated `/goal` block into Codex CLI. Do not invoke it automatically: contract approval and implementation remain separate user decisions.

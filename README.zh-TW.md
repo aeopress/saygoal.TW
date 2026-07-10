@@ -193,6 +193,10 @@ codex plugin add saygoal@saygoal
 
 用 `$dec <任務>`（或從 `/skills` 選），再把產出的 `/goal "..."` 貼進 Codex 內建 `/goal`。
 
+若要使用可選的固定模型派工，先明確確認這份契約，再呼叫 `$execute-goal`。第一次使用時，它會偵測內附的 `saygoal_writer` custom-agent 範本是否已安裝，並提供專案層級（`.codex/agents/`）或個人層級（`~/.codex/agents/`）設定；設定後開新 thread，再呼叫一次。它會啟動主 thread 的 `/goal`、只派一個 `gpt-5.6-sol`／`high` writer，最後由主 thread 獨立重跑驗證。
+
+`$execute-goal` 不會默默換成未釘選模型；若環境沒有該模型或不能選 custom agent，會在改檔前暫停。這是 Codex-only 功能，Claude Code 的 `/saygoal:dec` 完全不變。
+
 - **更新**：`codex plugin marketplace upgrade saygoal`，再重跑 `codex plugin add saygoal@saygoal`。
 - **移除**：`codex plugin remove saygoal@saygoal`，再 `codex plugin marketplace remove saygoal`。
 

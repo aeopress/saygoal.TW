@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execute Goal"
+  short_description: "Delegate a confirmed goal to a pinned writer"
+  default_prompt: "Use $execute-goal to implement the confirmed contract with the pinned writer."

@@ -1,10 +1,11 @@
 # Command spec tests
 
-Tests for the `/dec` and `/retro` command *behavior* — distinct from the
-sibling `harness/` A/B experiment, which measures `CLAUDE.md` effects on model
-bug-catching. This suite asks a narrower question: **do the v4.6.0–v4.8.0
-prompt changes produce the contract clauses they promise, and skip them when
-they'd be noise?**
+Tests for the `/dec` and `/retro` commands plus the Codex-only
+`$execute-goal` skill — distinct from the sibling `harness/` A/B experiment,
+which measures `CLAUDE.md` effects on model bug-catching. Layer 1 pins the
+deterministic artifact invariants introduced through v4.10.0; Layer 2 asks
+whether the v4.6.0–v4.8.0 prompt clauses appear in live model output and stay
+absent when they'd be noise.
 
 Two layers, cheap-to-expensive.
 
@@ -32,7 +33,13 @@ eval is too expensive and noisy to catch:
   anti-fixation / trace clauses (the Japanese README paraphrases, so it's
   excluded from the literal check); every README's bilevel section must cite
   arXiv 2603.23420, and any README advertising `/saygoal:retro` must have the
-  command backing it.
+  command backing it;
+- **Codex execute-goal seam** — the execution skill requires an explicitly
+  confirmed contract, owns the parent `/goal`, dispatches exactly one pinned
+  `gpt-5.6-sol/high` writer, independently reruns verification, and never adds
+  a Claude Code command with the same name. Section-aware checks and negative
+  controls reject contradictory writer counts, missing confirmation guards,
+  commented-out or multiline-only model pins, and self-report-only verification.
 
 The checks have negative controls: breaking a version or a mirrored clause
 flips the relevant check to FAIL and the script to exit 1.

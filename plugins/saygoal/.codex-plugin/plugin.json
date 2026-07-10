@@ -1,7 +1,7 @@
 {
   "name": "saygoal",
-  "version": "4.9.0",
-  "description": "Declarative reframing for Codex: turn imperative requests into a /goal contract — success criteria, verification commands, non-goals — distilled into a ready-to-use /goal condition.",
+  "version": "4.10.0",
+  "description": "Declarative goal workflow for Codex: compile requests into verifiable /goal contracts, then optionally execute a confirmed contract with a pinned writer.",
   "author": {
     "name": "yelban"
   },
@@ -21,17 +21,18 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "saygoal",
-    "shortDescription": "Convert requests into verifiable Codex goals",
-    "longDescription": "Use the dec skill before implementation to reframe imperative coding requests as declarative contracts: success criteria, verification command, non-goals, and a ready-to-use Codex /goal condition.",
+    "shortDescription": "Compile goals and delegate confirmed execution",
+    "longDescription": "Use dec to compile imperative coding requests into verifiable Codex /goal contracts. After explicit confirmation, execute-goal can activate the goal, delegate implementation to one pinned writer, and independently rerun verification.",
     "developerName": "yelban",
     "category": "Productivity",
     "capabilities": [
-      "Interactive"
+      "Interactive",
+      "Write"
     ],
     "websiteURL": "https://github.com/aeopress/saygoal.TW",
     "defaultPrompt": [
       "$dec fix the login flicker on first load",
-      "$dec make this endpoint faster",
+      "$execute-goal implement the confirmed contract",
       "$dec refactor auth without changing behavior"
     ],
     "brandColor": "#2563EB"

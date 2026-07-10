@@ -106,6 +106,10 @@ codex plugin add saygoal@saygoal
 
 `$dec <やりたいこと>`（または `/skills` から選択）で使って、出てきた `/goal "..."` を Codex の `/goal` に貼ってください。
 
+固定モデルで実行を委任したい場合は、契約を明示的に確認してから `$execute-goal` を呼び出します。初回は同梱の `saygoal_writer` custom-agent テンプレートが入っているかを確認し、プロジェクト単位（`.codex/agents/`）または個人単位（`~/.codex/agents/`）のセットアップを案内します。セットアップ後に新しい thread を開いてもう一度実行すると、親 thread の `/goal` を有効にし、`gpt-5.6-sol`／`high` の writer を 1 つだけ起動し、最後に親が検証を独立して再実行します。
+
+`$execute-goal` は未固定のモデルへ黙って切り替えません。対象モデルや custom agent を選べない環境では、ファイルを変更する前に停止します。これは Codex 専用で、Claude Code の `/saygoal:dec` は変わりません。
+
 - **更新**：`codex plugin marketplace upgrade saygoal` のあと `codex plugin add saygoal@saygoal` を再実行。
 - **削除**：`codex plugin remove saygoal@saygoal` のあと `codex plugin marketplace remove saygoal`。
 
