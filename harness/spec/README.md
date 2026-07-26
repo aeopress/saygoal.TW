@@ -72,27 +72,56 @@ Deterministic given a fixed output.
 | `dec-expensive-verify` | v4.8.0 | verification-cost-aware cap (cheap per-turn check, full suite as final gate) |
 | `retro-stall` | v4.7.0 | stall diagnosis + redirect to the real bottleneck + a rollback line, not just a bigger cap |
 
-### Smoke run — 2026-07-09, N=1 each
+### Scale run — 2026-07-26, N=10 per case (v4.11.0 prompts)
 
-All four cases pass on a single live run (CLI default model, `--effort` default).
-Highlights from the actual outputs: `dec-search` wove both guardrails into the
-`until` / `without` segments; `dec-nonsearch` correctly omitted them; `retro-stall`
-named the cache fixation, redirected the contract to the untouched
-`tokenize.py`, and shipped a `rollback:` line; `dec-expensive-verify` offered two
-capped strategies keyed to the 40-minute suite cost.
-
-> **This is a smoke test, not a verdict.** N=1 is one noisy sample. By this
-> repo's own [`EXPERIMENT.md`](../../EXPERIMENT.md) standard — "any N=3 LLM A/B
-> conclusion is uncertain until N ≥ 10" — a real behavioral claim needs the
-> loop below. Layer 1, being deterministic, *is* a guarantee; Layer 2 at N=1 is
-> evidence the pipeline works and the clauses appear, not proof of a rate.
-
-Scale to a real verdict (per-case pass-rate over seeds):
+`run-spec.sh` overwrites `runs/<case>/output.txt` on every pass, so a
+pass-rate measurement needs the samples kept. `scale-run.sh` archives one seed
+at a time and `score_scale.py` scores the archive:
 
 ```bash
-for s in $(seq 1 10); do harness/spec/run-spec.sh all; \
-  python3 harness/spec/score_spec.py >> runs/scored-$s.txt; done
+for s in $(seq 1 10); do MAX_USD=4.00 harness/spec/scale-run.sh "$s"; done
+python3 harness/spec/score_scale.py
 ```
 
-(The runner overwrites `runs/<case>/output.txt` each pass; redirect or move the
-outputs between seeds if you want to keep every sample.)
+Run it in the **foreground**: a nested `claude -p` launched from a Claude Code
+background task is killed silently, leaving an empty output and an empty
+stderr. One seed of all four cases took ~9m40s, so chunk it (`scale-run.sh 3
+dec-search dec-nonsearch`) — already-archived seeds are skipped, which makes
+the loop resumable and idempotent.
+
+**Result: 38/38 compiled runs pass, across all four cases (40 runs total).**
+The other two runs grilled instead of compiling — see below.
+
+| Case | Compiled runs passing | Grilled |
+|---|---|---|
+| `dec-search` | 9/9 | seed 8 |
+| `dec-nonsearch` | 10/10 | — |
+| `dec-expensive-verify` | 9/9 | seed 8 |
+| `retro-stall` | 10/10 | — |
+
+`score_scale.py` splits runs by whether they emitted their artifact (a `/goal "`
+condition for `/dec`, a `rollback:` line for `/retro`) before scoring. That
+split is not bookkeeping: a run that compiled nothing satisfies every
+`must_not_contain` check trivially, so folding grills into the pass column
+would manufacture a false green on `dec-nonsearch`.
+
+**Both grills are the fixture, not the prompt.** These fixtures are minimal by
+design, and on seed 8 the model noticed: in `dec-search` it found that
+`scripts/bench.sh` only echoes a hard-coded `p95=241ms`, so the sole way to
+satisfy a "get p95 under 200ms" contract is to edit the measuring instrument —
+and it stopped rather than compile a contract that invites the implementer to
+cheat. In `dec-expensive-verify` it objected that "the e2e suite is green" is
+satisfiable by changing nothing at all, and asked for a positive success
+criterion. Both are the grilling rule working as specified ("stop and wait —
+do not emit the contract before the user answers"), and the first is the
+verification-surface facet reasoning about its own fixture. Other seeds on the
+same fixtures compiled and flagged the stub under Pause-if instead; both
+responses are defensible, which is why the scorer reports them apart rather
+than picking a winner.
+
+> **What this does and doesn't establish.** It is a per-case pass rate for the
+> compiled artifacts on the current prompts, at the sample size this repo's own
+> [`EXPERIMENT.md`](../../EXPERIMENT.md) sets as the bar ("any N=3 LLM A/B
+> conclusion is uncertain until N ≥ 10"). It is not an A/B against the previous
+> prompts, and the oracles check that a clause *appears*, not that the contract
+> is good. Layer 1, being deterministic, is a guarantee; this is a rate.
