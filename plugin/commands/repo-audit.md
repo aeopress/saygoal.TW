@@ -19,7 +19,7 @@ argument-hint: [optional focus — a subdirectory, dimension, or concern]
 - 只分析。不修改程式碼、設定或依賴。你唯一建立的檔案是報告本身。
 - 不要只讀「健康聲明」——實際觀察。在可行範圍內執行 repo 自己的唯讀指令(install、lint、type-check、測試、依賴稽核),並如實回報:測試失敗就明說失敗並附上輸出。
 - 按專案成熟度校準——不要拿企業級標準要求 prototype。repo 很大時,深入做 80% 工作量的核心 20%,並說明略過了什麼。
-- 寧要 15 個高信心 findings,不要 50 個臆測。事實與判斷分開。某維度健康就用一句話帶過。真正的優點也要列——那是該保護的東西。
+- auditor 階段**全報**、不自我抑制:「只報高嚴重度」「保守一點」這類指令會讓模型照字面少報,壓的是 recall;數量與品質的閘門在下游的機械查證與 refuter。事實與判斷分開。某維度健康就用一句話帶過。真正的優點也要列——那是該保護的東西。
 
 ## 工作方式
 - 若你在 plan mode 被啟動:所有決策都已寫在這裡,你的計畫只有一行(「依此規格執行 audit」),立即送審。
@@ -27,7 +27,8 @@ argument-hint: [optional focus — a subdirectory, dimension, or concern]
 - repo 工具(pnpm、yarn、linter)不在 PATH 時,先試 corepack 或版本管理 shims(mise、asdf、nvm)再下結論。
 - 預設用一般 subagent(Agent tool):你能在波次之間持續綜合、引導 refuter、複核引用。只有邀請語含「use a workflow」或「ultracode」才改用 Workflow tool 編排 fan-out——把這些詞當編排 opt-in,不是 audit 焦點。若邀請語含 token 預算(如「+500k」),據此縮放 auditor 數量與深度。
 - 挖 git 歷史,不只看快照:高 churn × 高複雜度檔案、bug-fix 密集模組、被棄置的目錄、TODO/FIXME 的年齡。
-- 對抗式驗證:任何 Critical 或 High finding 進報告前,必須由一個 fresh-context subagent 對著實際程式碼嘗試反駁。撐不過的就刪除或降級。
+- 機械白名單先行:每個 finding 引用的 file:line 先用程式碼層查證(檔案存在、行號不超出檔案行數),查證不過直接剔除並記 warning——不修正、不重問。
+- 對抗式驗證:任何 Critical 或 High finding 進報告前,必須由一個 fresh-context subagent 對著實際程式碼嘗試反駁。撐不過的就刪除或降級——這裡才是數量的閘門。
 - 一路做到底不中途請示——這是唯讀且安全的。資訊足以行動時,就行動。
 
 ## Phase 1 — Discovery(先讀懂再評判)

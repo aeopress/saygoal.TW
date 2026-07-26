@@ -14,6 +14,7 @@ argument-hint: [optional — paste the original /goal condition and the last few
 
 - **同 session**(預設):loop 就在本對話跑過,直接讀 transcript——原 condition、每回合的嘗試與驗證輸出、trace 條款留下的 search log。
 - **跨 session**:請使用者貼上原 `/goal` condition 與最後幾回合的驗證輸出(或 search log)。兩樣缺一就停下來要,不要憑空診斷。
+- **委派型 loop**(codex exec / codex-agent / codex:rescue):trace 落在 `.claude/saygoal.trace.log`(每行 `<UTC time> | executor: <channel> | tried → result → ruled out`),有就直接讀,Step 1 的重建可跳過。
 
 ---
 

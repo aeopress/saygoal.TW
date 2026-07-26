@@ -33,6 +33,8 @@ VERBOSE = "-v" in sys.argv[1:]
 ANTI_FIXATION = "an approach whose verification output has already failed twice"
 TRACE_MARKER = "one-line search log"
 HISTORY_PATH = ".claude/saygoal.history.jsonl"
+TRACE_FILE = ".claude/saygoal.trace.log"
+INVARIANTS_FILE = ".claude/saygoal.invariants.md"
 
 # READMEs that quote the English clause verbatim (ja paraphrases → excluded).
 READMES_QUOTING = ["README.md", "README.zh-CN.md", "README.zh-TW.md"]
@@ -253,6 +255,33 @@ check("dec.md preference enum includes codex-exec", '"codex-exec"' in dec)
 missing_deleg = [r for r in ALL_READMES if "codex exec" not in read(r)]
 check("every README documents the codex exec delegation channel",
       not missing_deleg, f"missing in: {missing_deleg}" if missing_deleg else "all four")
+
+
+# ------------------- P1: verification surface, delegated trace, invariants (2026-07-26)
+# The verification-surface facet must exist on both platforms; the delegated
+# trace file must be named byte-identically by its writer clause (dec) and its
+# reader (retro); dec must read the project invariants file; repo-audit must
+# not suppress findings at the finder — the gate is the mechanical file:line
+# check plus the refuter.
+audit = read("plugin/commands/repo-audit.md")
+
+check("verification-surface facet mirrored: dec.md ↔ SKILL.md",
+      "量尺路徑" in dec and "verification surface" in skill.lower(),
+      f"dec={'量尺路徑' in dec} skill={'verification surface' in skill.lower()}")
+check("harvest audits the verification surface before semantic review",
+      "收割三件套" in dec and "拒收" in dec)
+check("trace-file handshake: dec (writer clause) ↔ retro (reader)",
+      TRACE_FILE in dec and TRACE_FILE in retro,
+      f"dec={TRACE_FILE in dec} retro={TRACE_FILE in retro}")
+trace_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md"]
+                  if "saygoal.trace" in read(rel) and TRACE_FILE not in read(rel)]
+check("no mistyped trace-file variant", not trace_variants,
+      f"variants in: {trace_variants}" if trace_variants else "clean")
+check("dec.md reads the project invariants file", INVARIANTS_FILE in dec)
+check("repo-audit finders report everything; the gate is downstream",
+      "全報" in audit and "寧要 15 個高信心" not in audit)
+check("repo-audit mechanically verifies cited file:line before the refuter",
+      "行號" in audit and "file:line" in audit)
 
 
 # ----------------------------------------- Codex execute-goal seam (v4.10.0)
