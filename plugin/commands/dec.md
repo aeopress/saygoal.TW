@@ -149,7 +149,9 @@ loop 停滯、或撞回合上限仍未收斂時,別把原 condition 直接重掛
 
 **委派版契約的一個調整**:搜尋型任務的 trace 條款改為落檔版、併入契約文字——`after each attempt, append one line to .claude/saygoal.trace.log: <UTC time> | executor: <channel> | tried → result → ruled out`。委派行程沒有 transcript 連續性,收割與 `/saygoal:retro` 讀這個檔。
 
-派發後回報 job/task 資訊與收割方式。**收割三件套**:驗收只讀契約原文、`git diff`、驗證指令輸出——不讀實作過程,過程 token 不回灌。diff 先比對 #3 的量尺路徑,量尺被動直接拒收、不進語意審查;再照 Verification 驗收,多子項看差異報告。委派是**調度**,不違反「不要實作」:實作發生在被委派的模型,且以使用者當下的明確選擇為前提。
+**派發前先編量尺 script**(實驗性):把契約編譯成一支 `.claude/saygoal.stop-check.sh` 落檔後再派發——整個 loop 依賴的那道閘門,不能交給實作模型自裁。script 規格:exit 0 唯若契約成立;真的執行驗證指令並比對關鍵字串,不信任何先前貼出的輸出;把派發當下的 `git rev-parse HEAD` 寫死為基準,量尺路徑 `git diff --name-only <基準> -- <路徑>` 非空即 fail;每條檢查印出證據與結論。Claude 與被委派模型共用這把尺,「完成」不再有兩種解讀。該檔未被 gitignore 時提醒一句。
+
+派發後回報 job/task 資訊與收割方式。**收割三件套**:驗收只讀契約原文、`git diff`、驗證輸出——不讀實作過程,過程 token 不回灌。第一步執行 `.claude/saygoal.stop-check.sh` 並貼出輸出與 exit code,非 0 直接拒收(量尺 diff 稽核與驗證重跑都在 script 裡,不採信實作方自報);多子項另核差異報告。委派是**調度**,不違反「不要實作」:實作發生在被委派的模型,且以使用者當下的明確選擇為前提。
 
 ---
 

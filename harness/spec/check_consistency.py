@@ -37,6 +37,7 @@ TRACE_FILE = ".claude/saygoal.trace.log"
 INVARIANTS_FILE = ".claude/saygoal.invariants.md"
 DEFAULT_CAP = "stop after 12 turns"
 STALE_CAP = "stop after 20 turns"
+STOPCHECK_FILE = ".claude/saygoal.stop-check.sh"
 
 # READMEs that quote the English clause verbatim (ja paraphrases → excluded).
 READMES_QUOTING = ["README.md", "README.zh-CN.md", "README.zh-TW.md"]
@@ -299,6 +300,20 @@ stale_cap = [rel for rel in
              if STALE_CAP in read(rel)]
 check("no file still quotes the retired 20-turn default", not stale_cap,
       f"stale in: {stale_cap}" if stale_cap else "clean")
+
+
+# ------------------------------------ P3: compiled stop-check (2026-07-26)
+# The gate the whole loop rests on must not be adjudicated by the implementing
+# model: dispatch compiles the contract into an executable stop-check whose
+# exit code decides acceptance, and harvest runs that script first. The path
+# must appear both at the compile rule and at the harvest step.
+check("dec.md compiles the stop-check at dispatch and runs it at harvest",
+      dec.count(STOPCHECK_FILE) >= 2,
+      f"occurrences={dec.count(STOPCHECK_FILE)}")
+stopcheck_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md"]
+                      if "saygoal.stop-check" in read(rel) and STOPCHECK_FILE not in read(rel)]
+check("no mistyped stop-check variant", not stopcheck_variants,
+      f"variants in: {stopcheck_variants}" if stopcheck_variants else "clean")
 
 
 # ----------------------------------------- Codex execute-goal seam (v4.10.0)
