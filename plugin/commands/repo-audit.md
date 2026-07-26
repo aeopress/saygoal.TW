@@ -45,7 +45,7 @@ argument-hint: [optional focus — a subdirectory, dimension, or concern]
 ## Phase 4 — 任務計畫
 每個任務要讓全新 Claude Code session 只憑簡報就能執行:標題、一段背景、影響檔案、盡可能寫成可執行檢查的驗收條件(一條會 pass 或 fail 的指令)、工作量(S <2h、M 半天、L 1–2 天、XL 需再拆)、風險、依賴。
 
-**每個任務最後附一條 ready-to-paste 的 `/goal` condition**,遵守 `/dec` 的 evaluator 規則:驗證寫成「執行 CMD 並貼出輸出證明」的形式、指定可 pattern-match 的字串或數字、禁用 ensure/verify/make sure 這類動詞、結尾加 `or stop after 20 turns`。
+**每個任務最後附一條 ready-to-paste 的 `/goal` condition**,遵守 `/dec` 的 evaluator 規則:驗證寫成「執行 CMD 並貼出輸出證明」的形式、指定可 pattern-match 的字串或數字、禁用 ensure/verify/make sure 這類動詞、結尾加 `or stop after 12 turns`。
 
 里程碑排序:
 - M0 — 安全網:核心路徑測試、CI gates

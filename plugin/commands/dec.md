@@ -72,7 +72,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - **不可改動**(Constraints):不得更動的行為/語義(public API、認證流程、輸出格式);其中**量尺路徑**(verification surface——驗證依賴的測試、bench script、CI 設定)列成明確路徑清單:量尺被動即作弊,這份清單也是收割時 diff 稽核的依據
 - **可改路徑**(Write scope):允許寫 / 禁止碰的路徑
 - **外部系統限制**(Action policy):read-only / draft-only / 不得 send·deploy·merge
-- **最多幾回合**(預算):一律加回合上限;預設 `or stop after 20 turns`,依任務複雜度**與驗證成本**調整——loop 成本 ≈ 回合數 × 每回合驗證成本,驗證昂貴(整包 e2e、長 benchmark、完整 build)時下調上限,或改編便宜的針對性驗證(如單一 spec 檔)逐回合跑、全套只在收尾跑一次
+- **最多幾回合**(預算):一律加回合上限;預設 `or stop after 12 turns`——Claude 5 世代單回合能完成過去整個 loop 的量,上限是停損不是額度,舊世代或較小模型實作時可放寬到 20——再依任務複雜度**與驗證成本**調整——loop 成本 ≈ 回合數 × 每回合驗證成本,驗證昂貴(整包 e2e、長 benchmark、完整 build)時下調上限,或改編便宜的針對性驗證(如單一 spec 檔)逐回合跑、全套只在收尾跑一次
 
 ### 4. 任務脈絡 (Context) — 選配,有才寫
 一句話說明**為什麼做、任務壽命**(「這是實驗,一個月後很可能刪掉」勝過「保持簡單」)。只在 grilling 問出內容、或使用者已提供時出現;沒有就整節省略。
@@ -96,7 +96,7 @@ without [constraints,多條用 AND 串] or stop after [N] turns
 /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
        without modifying src/auth/ or any file outside src/components/LoginPage.tsx
        AND without removing any existing assertion
-       or stop after 20 turns"
+       or stop after 12 turns"
 ```
 
 ### 何時暫停 (Pause-if) — 獨立列出,**不要塞進上面的 condition**

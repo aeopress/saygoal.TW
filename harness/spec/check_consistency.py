@@ -35,6 +35,8 @@ TRACE_MARKER = "one-line search log"
 HISTORY_PATH = ".claude/saygoal.history.jsonl"
 TRACE_FILE = ".claude/saygoal.trace.log"
 INVARIANTS_FILE = ".claude/saygoal.invariants.md"
+DEFAULT_CAP = "stop after 12 turns"
+STALE_CAP = "stop after 20 turns"
 
 # READMEs that quote the English clause verbatim (ja paraphrases → excluded).
 READMES_QUOTING = ["README.md", "README.zh-CN.md", "README.zh-TW.md"]
@@ -282,6 +284,21 @@ check("repo-audit finders report everything; the gate is downstream",
       "全報" in audit and "寧要 15 個高信心" not in audit)
 check("repo-audit mechanically verifies cited file:line before the refuter",
       "行號" in audit and "file:line" in audit)
+
+
+# --------------------------------------- P2: default turn cap (2026-07-26)
+# The default cap moved 20 → 12 for the Claude 5 generation (a turn now does
+# far more work; the cap is a stop-loss, not an allowance). The default must
+# agree between dec.md (rule + example) and repo-audit.md (per-task /goal
+# conditions), and no file may still quote the retired 20-turn default.
+check("default turn cap agrees: dec.md ↔ repo-audit.md",
+      DEFAULT_CAP in dec and DEFAULT_CAP in audit,
+      f"dec={DEFAULT_CAP in dec} audit={DEFAULT_CAP in audit}")
+stale_cap = [rel for rel in
+             ["plugin/commands/dec.md", "plugin/commands/repo-audit.md", *ALL_READMES]
+             if STALE_CAP in read(rel)]
+check("no file still quotes the retired 20-turn default", not stale_cap,
+      f"stale in: {stale_cap}" if stale_cap else "clean")
 
 
 # ----------------------------------------- Codex execute-goal seam (v4.10.0)

@@ -25,7 +25,7 @@ Claude Code と Codex で使える `/dec` + `/goal` の組み合わせ。Andrej 
 
 → /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
          without changing the auth flow or any file outside the login component
-         or stop after 20 turns"
+         or stop after 12 turns"
 ```
 
 `/dec` が契約を書いて、`/goal` が緑になるまで走らせる。やることはそれだけ。Claude Code（`/dec` コマンド）でも OpenAI Codex（`$dec` スキル）でも動きます。
@@ -60,6 +60,8 @@ Karpathy の「成功条件を渡して、あとは見ていろ」という言�
 **ループが行き詰まったら `/saygoal:retro`（外側のループ）**：`/goal` がターン上限まで同じ修正の言い換えを繰り返して終わってしまうことがあります。そこで同じ condition をもう一度貼るのは、一番効かない手です——先ほどの論文の実験でも、パラメータ調整には効果がなく、探索の仕組みそのものを書き換えることが 5 倍の改善のすべてでした。`/saygoal:retro` は transcript を読んで行き詰まりの原因（検証が壊れている／しきい値が高すぎる／制約が正解の方向を塞いでいる／同じ手への固着／タスクの誤解）を診断し、契約を構造から書き直します。修正版 condition と、元の condition をそのまま残した rollback 行がセットなので、書き直しが外れても貼り直し 1 回で戻せます。診断結果は `.claude/saygoal.history.jsonl` に 1 行ずつ残り、次の `/dec` が最初に読みます。
 
 ちなみに、この契約はそのまま**委任プロンプト**にもなります。[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) の `/codex:rescue`、[codex-orchestrator](https://github.com/yelban/codex-orchestrator) の `codex-agent start`、あるいは素の `codex exec`（プラグイン不要で一番汎用的なチャネル。バックグラウンド task として投げれば、task id・`--json` イベントストリーム・完了通知・TaskStop がそのまま実行ステータスの追跡になります）に契約の全文を渡せば、検証条件と完了判定つきのタスクとして別モデルに外注できます。`/goal` に貼れば自分でループ、委任ツールに渡せば外注——合格ラインはどちらでも同じです。Claude 版の `/dec` はここまで自動でやってくれます：契約を出したあとにツールの有無を検出し、見つかれば「自分で `/goal` するか、委任するか」を選択肢で確認。選んだ答えはプロジェクトの `.claude/saygoal.local.json` に覚えて次回は先頭候補にしますが、確認自体は毎回入ります（外注のたびにクォータを使うので、拒否権はあなたの手元に）。
+
+**契約の食べ方は 2 通り——spec モードと loop モード**：同じ契約でも使い方は 2 つ。ひとつは **spec モード**——契約（`/goal` 前置きなしの本文）をそのまま 1 回の実装に渡して、終わったら Verification の項目で検収する方法。Claude 5 世代のモデルは仕様が完全なら一発で正しく作れることが多く、契約はまさにその仕様なので、決定的なタスクならまずこちらが安上がりです（ループの毎ターン再検証コストがかからない）。もうひとつは **loop モード**——探索型タスクや無人運転、外注に監視をつけたいときだけ `/goal` に貼る方法。いまのモデルにとってループの価値は「走らせ続けること」ではなく、収束の保証と、言いくるめられない評価役による証拠の正直さです。どちらでも合格ラインは同じ——契約は変わらず、運転者が変わるだけ。
 
 ### 地味だけど大事：Claude の評価役は「会話の中身しか見ない」
 

@@ -1,8 +1,8 @@
 {
   "must_contain": [
     {"signal": "refactor constraint auto-added", "regex": "(?i)without (chang|alter|modif)[a-z]*[^\\n]{0,25}behaviou?r|observable[^\\n]{0,20}behaviou?r|可觀察行為|既有.{0,6}(測試|斷言|test|assertion)"},
-    {"signal": "verification-cost awareness", "regex": "(?i)targeted|cheaper|smaller|subset|per-turn|full (e2e )?suite|lower.{0,12}(cap|turn)|reduce.{0,12}turn"}
+    {"signal": "verification-cost awareness", "regex": "(?i)targeted|cheaper|smaller|subset|per-turn|full (e2e )?suite|lower.{0,12}(cap|turn)|reduce.{0,12}turn|針對性|便宜|逐回合|下調|全套|收尾"}
   ],
   "must_not_contain": [],
-  "notes": "Subjective — the cost-awareness wording varies. Treat a miss on the second signal as a prompt-tuning candidate, not a hard regression."
+  "notes": "Subjective — the cost-awareness wording varies, and the command file is zh-TW so outputs may carry the signal in Chinese (針對性/便宜/逐回合/下調/全套/收尾 are the zh equivalents of targeted/cheaper/per-turn/lowered/full-suite/at-the-end). The regex covers both languages; treat a miss as a prompt-tuning candidate, not a hard regression."
 }

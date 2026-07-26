@@ -23,7 +23,7 @@ English | [繁體中文（台灣）](./README.zh-TW.md) | [简体中文](./READM
 
 → /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
          without changing the auth flow or any file outside the login component
-         or stop after 20 turns"
+         or stop after 12 turns"
 ```
 
 `/dec` writes the contract; `/goal` drives to green. Works on **Claude Code** (`/dec` command) and **OpenAI Codex** (`$dec` skill — seven-field format).
@@ -68,7 +68,7 @@ Together with the goal, hand the agent its verification tool: a test command, a 
 /dec fix the login flicker on first load
 ```
 
-Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"), a verification command worded so Claude must *run it and paste the output*, and on-demand boundaries (what must not change / writable paths / external-system limits) — plus a ready-to-use `/goal` condition in the natural-language `[work] until [end state] without [constraints] or stop after 20 turns` shape you can paste directly. If the task is too subjective or too small, it replies "not applicable — just do it" instead of forcing a conversion. Good for one-shot prompts where you want the declarative discipline without committing to autonomous looping (or when you're on Cursor / an older Claude Code without `/goal`).
+Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"), a verification command worded so Claude must *run it and paste the output*, and on-demand boundaries (what must not change / writable paths / external-system limits) — plus a ready-to-use `/goal` condition in the natural-language `[work] until [end state] without [constraints] or stop after 12 turns` shape you can paste directly. If the task is too subjective or too small, it replies "not applicable — just do it" instead of forcing a conversion. Good for one-shot prompts where you want the declarative discipline without committing to autonomous looping (or when you're on Cursor / an older Claude Code without `/goal`).
 
 **Grill first, then compile**: a contract only converges when no question remains — so on a vague request, `/dec` grills before compiling, asking one question at a time, each with a recommended answer, to resolve the fields it could otherwise only guess (threshold, whether the verification target exists, writable boundaries) instead of silently marking them `(assumed)`. Three behaviors: **vague** → one question at a time until it converges; **too subjective / too small** → "not applicable — just do it"; **clear and substantial** → compiles straight to a contract, no interrogation. The skip-when-clear guard means it probes only when genuinely needed, never badgering an already-precise request (verified end-to-end on the Codex CLI). This is exactly the Fable 5 workflow Thariq of the Claude Code team describes — "I'd ask Claude to interview me about the implementation before writing the final spec file" ([source video](https://x.com/trq212/status/2073100352921215386)).
 
@@ -77,6 +77,15 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
 **Multi-part specs → per-item deviation report**: when the spec lists several items, the contract extends verification to "paste a per-item completion report: each item marked implemented / deviated, with the difference explained" — matching Thariq's "prepare a report on what was implemented and if anything differed". The report is evidence the evaluator can pattern-match, and it closes the stealthiest failure mode: the loop converged, but built something other than what you asked for. The report defaults to self-reporting by the implementer; on multi-part specs the Claude command asks one more grilling question, letting you upgrade to **workflow verification** — one independent verifier agent per item, judging outcome against the spec without reading the implementation process — exactly Thariq's "use a workflow to verify each part of the plan". Independent verification is more trustworthy (self-reporting is grading your own homework) but costs more tokens, hence an option, defaulting to self-report.
 
 **Search-type tasks → convergence guardrails**: when a task only converges through repeated try→verify cycles (performance tuning, flaky-test debugging, chasing a benchmark number), the classic stall is the loop re-proposing the same change until the turn budget runs out — given the same state, the LLM falls back to its priors. This is exactly the failure mode [Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) documents on Karpathy's own pretraining benchmark, and its fix — break the inner loop's deterministic search pattern — carries over to `/dec` with the contract as the mechanism carrier: the compiled condition gains a **trace clause** in the until segment (`pasting every 5 turns a one-line search log: approaches tried → result → ruled out`), keeping the transcript legible as a search trace, and an **anti-fixation clause** in the without segment (`without repeating an approach whose verification output has already failed twice`) — the prompt-carrier equivalent of the paper's Tabu Search mechanism. Non-search tasks get neither: there the clauses are noise.
+
+### Two ways to consume a contract — spec mode vs loop mode
+
+The same contract has two consumption modes; pick per task, not per habit:
+
+- **Spec mode** — hand the contract (fields #1–#4, no `/goal` prefix) to a single implementation pass — your own session or a delegated model — and accept against the Verification field. Claude 5-era models show first-shot correctness on well-specified problems, and the contract is exactly that spec; a one-shot run also skips the loop's per-turn cost (context re-read plus verification rerun every turn). On deterministic tasks, try this first.
+- **Loop mode** — paste the compiled `/goal` condition when the task genuinely needs supervised iteration: search-type tasks (performance tuning, flaky tests, benchmark chasing), delegation you want harness-checked, or unattended runs. On current models the loop's value is the convergence guarantee and evidence honesty — an evaluator that can't be talked past — not "keeping the model working".
+
+Either way the acceptance criteria are identical: the contract doesn't change, only who drives.
 
 ### `/dec` as the boundary-setter for `/goal`
 
@@ -94,7 +103,7 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
 
 ✅ /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
           without changing the auth flow or any file outside the login component
-          or stop after 20 turns"
+          or stop after 12 turns"
    Haiku reads the pasted test output from the transcript and judges deterministically.
    The loop actually converges.
 ```
@@ -103,7 +112,7 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
 
 1. **Machine-checkable success conditions** — "diff < 2px", "10 passed", "p95 < X ms" map cleanly to evaluator yes/no.
 2. **A verification command embedded in the contract** — forces Claude to actually run the check, not statically reason "this should work now". (Patching-without-running was a real failure mode in our T4 declarative-loop test.)
-3. **Structured boundaries (five facets, on demand)** — what must not change, writable paths, external-system limits, pause-if, and a turn cap. For Claude they compile into the condition (`"… without test files changed and no new files in src/legacy/, or stop after 20 turns"`); pause-if is listed separately and is better as a Stop hook, since the evaluator can't judge it. The turn cap is verification-cost-aware: a loop reruns its check every turn, so an expensive check (full e2e suite, long benchmark) lowers the cap — or the contract compiles a cheap targeted check per turn and saves the full suite for the end.
+3. **Structured boundaries (five facets, on demand)** — what must not change, writable paths, external-system limits, pause-if, and a turn cap. For Claude they compile into the condition (`"… without test files changed and no new files in src/legacy/, or stop after 12 turns"`); pause-if is listed separately and is better as a Stop hook, since the evaluator can't judge it. The turn cap is verification-cost-aware: a loop reruns its check every turn, so an expensive check (full e2e suite, long benchmark) lowers the cap — or the contract compiles a cheap targeted check per turn and saves the full suite for the end.
 
 ### The full pipeline
 
@@ -117,7 +126,7 @@ Returns success criteria (e.g. "Playwright screenshot diff < 2px across 10 runs"
 
 ### When the loop stalls — `/saygoal:retro`, the outer loop
 
-A `/goal` loop can stall: it hits `or stop after 20 turns` still re-proposing variations of the same failed fix. Re-pasting the same condition harder is the one move that reliably does nothing — in [Bilevel Autoresearch](https://arxiv.org/abs/2603.23420)'s ablation, parameter-level adjustment showed no reliable gain, while mechanism-level rewriting carried the entire 5× effect. `/saygoal:retro` is that outer loop for this pipeline: it reads the stalled session's transcript as a search trace, classifies the stall — broken verification, unreachable threshold, a boundary walling off the solution (auto-added constraints are the prime suspect), fixation, or a mis-scoped task — and structurally rewrites the contract. Output: a revised ready-to-paste condition plus a `rollback:` line carrying the original verbatim, so a bad rewrite never costs more than one paste. Each retro also appends one line to `.claude/saygoal.history.jsonl`, which future `/dec` grilling reads first — past stall reasons become the next contract's pre-checks.
+A `/goal` loop can stall: it hits `or stop after 12 turns` still re-proposing variations of the same failed fix. Re-pasting the same condition harder is the one move that reliably does nothing — in [Bilevel Autoresearch](https://arxiv.org/abs/2603.23420)'s ablation, parameter-level adjustment showed no reliable gain, while mechanism-level rewriting carried the entire 5× effect. `/saygoal:retro` is that outer loop for this pipeline: it reads the stalled session's transcript as a search trace, classifies the stall — broken verification, unreachable threshold, a boundary walling off the solution (auto-added constraints are the prime suspect), fixation, or a mis-scoped task — and structurally rewrites the contract. Output: a revised ready-to-paste condition plus a `rollback:` line carrying the original verbatim, so a bad rewrite never costs more than one paste. Each retro also appends one line to `.claude/saygoal.history.jsonl`, which future `/dec` grilling reads first — past stall reasons become the next contract's pre-checks.
 
 ### The contract is also a delegation prompt — pairing with Codex delegation tools
 

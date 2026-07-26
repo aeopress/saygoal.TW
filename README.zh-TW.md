@@ -23,7 +23,7 @@
 
 → /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
          without changing the auth flow or any file outside the login component
-         or stop after 20 turns"
+         or stop after 12 turns"
 ```
 
 `/dec` 寫契約；`/goal` 跑到綠燈。支援 **Claude Code**（`/dec` command）與 **OpenAI Codex**（`$dec` skill — 七欄位格式）。
@@ -68,7 +68,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 /dec 修登入頁第一次載入時的閃爍
 ```
 
-回覆會給你成功條件（例如「Playwright 截圖比對 10 次、位移 < 2px」）、一條措辭成「Claude 必須實際執行並貼出輸出」的驗證指令、以及按需出現的邊界（不可改動 / 可寫路徑 / 外部系統限制）——**外加一條可直接複製貼上的 `/goal` condition**（自然語言的 `[做什麼] until [端狀態] without [約束] or stop after 20 turns` 句式）。若任務太主觀或太小，會回「不適用，建議直接做」、不硬轉換。適合單一 prompt 套用宣告式紀律、不需要自主迭代的場合（或在 Cursor / 舊版 Claude Code 沒有 `/goal` 時）。
+回覆會給你成功條件（例如「Playwright 截圖比對 10 次、位移 < 2px」）、一條措辭成「Claude 必須實際執行並貼出輸出」的驗證指令、以及按需出現的邊界（不可改動 / 可寫路徑 / 外部系統限制）——**外加一條可直接複製貼上的 `/goal` condition**（自然語言的 `[做什麼] until [端狀態] without [約束] or stop after 12 turns` 句式）。若任務太主觀或太小，會回「不適用，建議直接做」、不硬轉換。適合單一 prompt 套用宣告式紀律、不需要自主迭代的場合（或在 Cursor / 舊版 Claude Code 沒有 `/goal` 時）。
 
 **先問清楚，再編譯（grilling 前置）**：好契約要能收斂，前提是沒有未解問題。所以面對模糊請求，`/dec` 會在編譯前先 grill——一次只問一題、每題附上建議答案，把只能靠猜的欄位（門檻、驗證目標存不存在、可寫邊界）問掉，而不是默默標 `(assumed)` 帶過。三種行為一目了然：**模糊任務** → 一次一題、問到收斂；**太主觀或太小** → 回「不適用，建議直接做」；**清楚且夠份量** → 不囉嗦、直接編出契約。skip-when-clear 護欄讓它只在真正需要時才追問，不騷擾已經精確的請求（行為已用 Codex CLI 實測通過）。Claude Code 團隊成員 Thariq 描述的 Fable 5 工作法正是這個流程——"I'd ask Claude to interview me about the implementation before writing the final spec file"（[來源影片](https://x.com/trq212/status/2073100352921215386)）。
 
@@ -77,6 +77,15 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 **多子項規範 → 逐項差異報告**：規範列了多個子項時，契約會把驗證延伸為「貼出逐項實作報告：每項標 implemented / deviated 並說明差異」——對應 Thariq 的 "prepare a report on what was implemented and if anything differed"。報告是 evaluator 可 pattern-match 的證據，也堵住最隱蔽的失敗模式：loop 收斂了，但建的不是你要的東西。報告預設由實作者自報；Claude 版在多子項時 grilling 會多問一題，可升級為 **workflow 獨立驗證**——每個子項派一個獨立驗證 agent、只對照規範與成果、不看實作過程——正是 Thariq 的 "use a workflow to verify each part of the plan"。獨立驗證可信（自報是自己改考卷）但較花 token，所以做成選項、預設自報。
 
 **搜尋型任務 → 收斂護欄**：任務要靠多輪「嘗試→驗證→再嘗試」才收斂（效能調校、flaky test 除錯、追 benchmark 數字）時，loop 的典型死法是同狀態下重提同一改法、連續失敗到回合上限——LLM 退回自身 priors。這正是 [Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 在 Karpathy 自己的 pretraining benchmark 上記錄到的失敗模式，而它的解法——打破內圈的固定搜尋模式——搬到 `/dec` 上就是以契約為機制載體：編譯出的 condition 會多兩條護欄——until 段的 **trace 條款**（`pasting every 5 turns a one-line search log: approaches tried → result → ruled out`），讓 transcript 保持可診斷的搜尋紀錄；without 段的 **anti-fixation 條款**（`without repeating an approach whose verification output has already failed twice`），相當於論文 Tabu Search 機制的 prompt 版。非搜尋型任務兩條都不加：在那裡它們是雜訊。
+
+### 契約的兩種吃法 —— spec 模式 vs loop 模式
+
+同一份契約有兩種消費方式；按任務挑，不要按習慣挑：
+
+- **Spec 模式**——把契約（#1–#4 欄位，不含 `/goal` 前綴）交給單次實作——自己這個 session 或委派出去的模型——收工時照 Verification 欄位驗收。Claude 5 世代模型對規格完整的問題常能一次做對，契約正是那份規格；單發實作也省掉 loop 的每回合成本（重讀 context、重跑驗證）。確定性任務先試這條。
+- **Loop 模式**——任務真的需要受監督的迭代時，才把編譯好的 `/goal` condition 貼上：搜尋型任務（效能調校、flaky test、追 benchmark 數字）、想要 harness 把關的委派、或無人值守。在新一代模型上，loop 的價值是收斂保證與證據誠實性——一個說不動的 evaluator——而不是「讓模型持續工作」。
+
+兩條路的驗收標準完全相同：契約不變，變的只是誰來開車。
 
 ### `/dec` 當作 `/goal` 的「邊界設定器」
 
@@ -94,7 +103,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 ✅ /goal "run npx playwright test login-flicker.spec.ts until it paste-shows 0 failures
           without changing the auth flow or any file outside the login component
-          or stop after 20 turns"
+          or stop after 12 turns"
    Haiku 讀 transcript 內貼出的測試輸出能精準判定。
    Loop 真的會收斂。
 ```
@@ -103,7 +112,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 1. **可機器判定的成功條件**——「diff < 2px」「10 passed」「p95 < X ms」evaluator 看 transcript 就能 yes/no
 2. **嵌進契約的驗證指令**——強迫 Claude 真的去跑檢查、而不是靜態推理然後回報「應該可以了」（這正是我們 T4 declarative-loop 測試看到的失敗模式）
-3. **結構化邊界（五面、按需）**——不可改動、可寫路徑、外部系統限制、何時暫停、回合上限。對 Claude 這些會編進 condition（「… without test files changed and no new files in src/legacy/, or stop after 20 turns」）；其中「何時暫停」單獨列出、建議用 Stop hook，因為 evaluator 判不了它。回合上限把驗證成本算進去：loop 每回合都重跑驗證，驗證昂貴（整包 e2e、長 benchmark）就下調上限——或契約改編便宜的針對性驗證逐回合跑、全套留到收尾跑一次。
+3. **結構化邊界（五面、按需）**——不可改動、可寫路徑、外部系統限制、何時暫停、回合上限。對 Claude 這些會編進 condition（「… without test files changed and no new files in src/legacy/, or stop after 12 turns」）；其中「何時暫停」單獨列出、建議用 Stop hook，因為 evaluator 判不了它。回合上限把驗證成本算進去：loop 每回合都重跑驗證，驗證昂貴（整包 e2e、長 benchmark）就下調上限——或契約改編便宜的針對性驗證逐回合跑、全套留到收尾跑一次。
 
 ### 完整 pipeline
 
@@ -117,7 +126,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 ### loop 停滯時 —— `/saygoal:retro`，外圈
 
-`/goal` loop 可能停滯：撞到 `or stop after 20 turns` 時還在重提同一失敗修法的變體。把原 condition 直接重掛是唯一保證沒用的一招——[Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 的消融實驗裡，參數級調整沒有可靠增益，整個 5× 效果都來自機制級重寫。`/saygoal:retro` 就是這條 pipeline 的外圈：把停滯 session 的 transcript 當搜尋 trace 讀，判定停滯類別——驗證斷裂、門檻不可達、邊界牆住正解（自動併入的約束列頭號嫌疑）、固著、範圍錯置——然後結構性重寫契約。輸出是一條可直接貼上的修訂版 condition，外加一行 `rollback:` 照抄原版——壞的重寫最多只花你一次貼上。每次 retro 還會在 `.claude/saygoal.history.jsonl` 補一行紀錄，之後的 `/dec` grilling 會先讀它——過去的停滯原因變成下一份契約的前置查證。
+`/goal` loop 可能停滯：撞到 `or stop after 12 turns` 時還在重提同一失敗修法的變體。把原 condition 直接重掛是唯一保證沒用的一招——[Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 的消融實驗裡，參數級調整沒有可靠增益，整個 5× 效果都來自機制級重寫。`/saygoal:retro` 就是這條 pipeline 的外圈：把停滯 session 的 transcript 當搜尋 trace 讀，判定停滯類別——驗證斷裂、門檻不可達、邊界牆住正解（自動併入的約束列頭號嫌疑）、固著、範圍錯置——然後結構性重寫契約。輸出是一條可直接貼上的修訂版 condition，外加一行 `rollback:` 照抄原版——壞的重寫最多只花你一次貼上。每次 retro 還會在 `.claude/saygoal.history.jsonl` 補一行紀錄，之後的 `/dec` grilling 會先讀它——過去的停滯原因變成下一份契約的前置查證。
 
 ### 契約也是委派 prompt —— 與 Codex 委派工具協作
 
