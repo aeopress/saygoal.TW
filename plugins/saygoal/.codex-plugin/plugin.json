@@ -1,6 +1,6 @@
 {
   "name": "saygoal",
-  "version": "4.10.0",
+  "version": "4.11.0",
   "description": "Declarative goal workflow for Codex: compile requests into verifiable /goal contracts, then optionally execute a confirmed contract with a pinned writer.",
   "author": {
     "name": "yelban"

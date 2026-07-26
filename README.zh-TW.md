@@ -112,7 +112,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 1. **可機器判定的成功條件**——「diff < 2px」「10 passed」「p95 < X ms」evaluator 看 transcript 就能 yes/no
 2. **嵌進契約的驗證指令**——強迫 Claude 真的去跑檢查、而不是靜態推理然後回報「應該可以了」（這正是我們 T4 declarative-loop 測試看到的失敗模式）
-3. **結構化邊界（五面、按需）**——不可改動、可寫路徑、外部系統限制、何時暫停、回合上限。對 Claude 這些會編進 condition（「… without test files changed and no new files in src/legacy/, or stop after 12 turns」）；其中「何時暫停」單獨列出、建議用 Stop hook，因為 evaluator 判不了它。回合上限把驗證成本算進去：loop 每回合都重跑驗證，驗證昂貴（整包 e2e、長 benchmark）就下調上限——或契約改編便宜的針對性驗證逐回合跑、全套留到收尾跑一次。
+3. **結構化邊界（五面、按需）**——不可改動（含**量尺路徑**：驗證本身依賴的檔案——測試檔、bench script、CI 設定——列成明確路徑，因為挪動量尺正是 loop 假裝變綠的手法）、可寫路徑、外部系統限制、何時暫停、回合上限。對 Claude 這些會編進 condition（「… without test files changed and no new files in src/legacy/, or stop after 12 turns」）；其中「何時暫停」單獨列出、建議用 Stop hook，因為 evaluator 判不了它。回合上限把驗證成本算進去：loop 每回合都重跑驗證，驗證昂貴（整包 e2e、長 benchmark）就下調上限——或契約改編便宜的針對性驗證逐回合跑、全套留到收尾跑一次。
 
 ### 完整 pipeline
 
@@ -137,6 +137,12 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 - **`codex exec`**（裸 codex CLI——最通用的通道，不需裝任何 plugin）：把 `codex exec -C <repo> --sandbox workspace-write --json "<契約>"` 當背景 task 派發。背景 task ID、`--json` 事件流、完成通知、TaskStop 就是運行狀態追蹤——等同 codex-orchestrator 包裝的 PID + exitcode + JSONL log，由 Claude 背景 task 原生提供。這是 `/codex:rescue`、`codex-agent` 都不可用時的最低共同標準 fallback（需網路——Claude 在 sandbox 下要放行）。
 
 Claude 版的 `/dec` 會把這件事自動化：契約輸出後偵測這幾個通道（看 session 的 skills 清單、`command -v codex-agent`、`command -v codex`），偵測到就用 AskUserQuestion 問執行通道——自己 `/goal` loop，還是委派出去。你的選擇記在專案的 `.claude/saygoal.local.json`，下次排在第一個選項；但**每次仍會問**（每次委派都花額度，單次否決權留在你手上）。選了委派就當場背景派發，收割時照契約的驗證欄位驗收。都沒安裝就不會提委派，行為與從前相同。
+
+**委派會替契約多編三樣東西。** 委派跑起來沒有共用的 transcript，被委派的模型你也較難即時修正，所以選定通道後 `/dec` 會多編三個機制：
+
+- **編譯出的 stop-check**——派發前把契約編成 `.claude/saygoal.stop-check.sh`：它自己重跑驗證，不採信先前貼出的輸出；量尺路徑相對派發當下的 commit 有異動就 fail；每條檢查印出證據。整個委派依賴的那道閘門，正是實作模型不可以自裁的那道——Claude 與被委派的模型從此共用同一把尺，「完成」不再有兩種解讀。
+- **trace 落檔**——背景行程不留 transcript 可讀，所以搜尋型契約每次嘗試往 `.claude/saygoal.trace.log` 補一行（時間、執行者、試了什麼 → 結果 → 排除了什麼）。`/saygoal:retro` 直接讀這個檔，不必重建一份它從未見過的 transcript；那個 executor 欄位，日後就是「委派出去的回合是不是收斂得比較快」的答案。
+- **三輸入收割**——驗收只看契約原文、diff、stop-check 的輸出與 exit code。就這三樣：非 0 直接拒收，實作過程完全不回灌進你的 context。
 
 分工是上下游：`/dec` 管「契約寫得夠不夠收斂」，委派工具管「誰去執行、怎麼平行」。同一份契約，貼 `/goal` 是自己 loop 到綠燈，交給委派工具是外包給另一顆模型——驗收標準不變。
 

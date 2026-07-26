@@ -112,7 +112,7 @@ Karpathy 最强的洞见其实是**用户端的纪律**，不是 LLM 自我约�
 
 1. **可机器判定的成功条件**——「diff < 2px」「10 passed」「p95 < X ms」evaluator 看 transcript 就能 yes/no
 2. **嵌进契约的验证指令**——强迫 Claude 真的去跑检查、而不是静态推理然后回报「应该可以了」（这正是我们 T4 declarative-loop 测试看到的失败模式）
-3. **结构化边界（五面、按需）**——不可改动、可写路径、外部系统限制、何时暂停、回合上限。对 Claude 这些会编进 condition（「… without test files changed and no new files in src/legacy/, or stop after 12 turns」）；其中「何时暂停」单独列出、建议用 Stop hook，因为 evaluator 判不了它。回合上限把验证成本算进去：loop 每回合都重跑验证，验证昂贵（整包 e2e、长 benchmark）就下调上限——或契约改编便宜的针对性验证逐回合跑、全套留到收尾跑一次。
+3. **结构化边界（五面、按需）**——不可改动（含**量尺路径**：验证本身依赖的文件——测试文件、bench script、CI 配置——列成明确路径，因为挪动量尺正是 loop 假装变绿的手法）、可写路径、外部系统限制、何时暂停、回合上限。对 Claude 这些会编进 condition（「… without test files changed and no new files in src/legacy/, or stop after 12 turns」）；其中「何时暂停」单独列出、建议用 Stop hook，因为 evaluator 判不了它。回合上限把验证成本算进去：loop 每回合都重跑验证，验证昂贵（整包 e2e、长 benchmark）就下调上限——或契约改编便宜的针对性验证逐回合跑、全套留到收尾跑一次。
 
 ### 完整 pipeline
 
@@ -137,6 +137,12 @@ Karpathy 最强的洞见其实是**用户端的纪律**，不是 LLM 自我约�
 - **`codex exec`**（裸 codex CLI——最通用的通道，不需装任何 plugin）：把 `codex exec -C <repo> --sandbox workspace-write --json "<契约>"` 当后台 task 派发。后台 task ID、`--json` 事件流、完成通知、TaskStop 就是运行状态追踪——等同 codex-orchestrator 包装的 PID + exitcode + JSONL log，由 Claude 后台 task 原生提供。这是 `/codex:rescue`、`codex-agent` 都不可用时的最低共同标准 fallback（需网络——Claude 在 sandbox 下要放行）。
 
 Claude 版的 `/dec` 会把这件事自动化：契约输出后检测这几个通道（看 session 的 skills 清单、`command -v codex-agent`、`command -v codex`），检测到就用 AskUserQuestion 问执行通道——自己 `/goal` loop，还是委派出去。你的选择记在项目的 `.claude/saygoal.local.json`，下次排在第一个选项；但**每次仍会问**（每次委派都花额度，单次否决权留在你手上）。选了委派就当场后台派发，收割时照契约的验证字段验收。都没安装就不会提委派，行为与从前相同。
+
+**委派会替契约多编三样东西。** 委派跑起来没有共用的 transcript，被委派的模型你也较难即时修正，所以选定通道后 `/dec` 会多编三个机制：
+
+- **编译出的 stop-check**——派发前把契约编成 `.claude/saygoal.stop-check.sh`：它自己重跑验证，不采信先前贴出的输出；量尺路径相对派发当下的 commit 有改动就 fail；每条检查印出证据。整个委派依赖的那道闸门，正是实现模型不可以自裁的那道——Claude 与被委派的模型从此共用同一把尺，「完成」不再有两种解读。
+- **trace 落档**——后台进程不留 transcript 可读，所以搜索型契约每次尝试往 `.claude/saygoal.trace.log` 补一行（时间、执行者、试了什么 → 结果 → 排除了什么）。`/saygoal:retro` 直接读这个档，不必重建一份它从未见过的 transcript；那个 executor 字段，日后就是「委派出去的回合是不是收敛得比较快」的答案。
+- **三输入收割**——验收只看契约原文、diff、stop-check 的输出与 exit code。就这三样：非 0 直接拒收，实现过程完全不回灌进你的 context。
 
 分工是上下游：`/dec` 管「契约写得够不够收敛」，委派工具管「谁去执行、怎么并行」。同一份契约，贴 `/goal` 是自己 loop 到绿灯，交给委派工具是外包给另一个模型——验收标准不变。
 

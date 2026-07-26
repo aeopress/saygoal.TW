@@ -315,6 +315,15 @@ stopcheck_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands
 check("no mistyped stop-check variant", not stopcheck_variants,
       f"variants in: {stopcheck_variants}" if stopcheck_variants else "clean")
 
+# The delegated-run mechanisms are user-visible: every README must name the
+# two artifacts a delegated contract lands, in every language.
+missing_stopcheck = [r for r in ALL_READMES if STOPCHECK_FILE not in read(r)]
+check("every README documents the compiled stop-check", not missing_stopcheck,
+      f"missing in: {missing_stopcheck}" if missing_stopcheck else "all four")
+missing_trace = [r for r in ALL_READMES if TRACE_FILE not in read(r)]
+check("every README documents the delegated trace file", not missing_trace,
+      f"missing in: {missing_trace}" if missing_trace else "all four")
+
 
 # ----------------------------------------- Codex execute-goal seam (v4.10.0)
 execute_path = ROOT / "plugins/saygoal/skills/execute-goal/SKILL.md"
