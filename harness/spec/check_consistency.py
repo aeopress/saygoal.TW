@@ -205,6 +205,24 @@ for cmd in ["dec.md", "retro.md", "repo-audit.md", "judge.md"]:
           p.exists() and p.stat().st_size > 0,
           "" if p.exists() else "missing")
 
+# The marketplace and plugin descriptions are the storefront: /plugin renders
+# them verbatim, so a command that ships without being named there is invisible
+# to anyone browsing. Derive the expected names from what actually ships.
+shipped_commands = sorted(f"/{p.stem}" for p in (ROOT / "plugin" / "commands").glob("*.md"))
+for rel, jq_path in [(".claude-plugin/marketplace.json", ("metadata", "description")),
+                     (".claude-plugin/marketplace.json", ("plugins", 0, "description")),
+                     ("plugin/.claude-plugin/plugin.json", ("description",))]:
+    try:
+        node = json.loads(read(rel))
+        for key in jq_path:
+            node = node[key]
+        missing_cmds = [c for c in shipped_commands if c not in node]
+        check(f"{rel} description names every shipped command",
+              not missing_cmds,
+              f"missing: {missing_cmds}" if missing_cmds else " ".join(shipped_commands))
+    except (json.JSONDecodeError, KeyError, IndexError, FileNotFoundError) as e:
+        check(f"{rel} description is readable", False, repr(e))
+
 
 # ------------------------------------------------ Claude command ↔ Codex skill
 dec = read("plugin/commands/dec.md")
