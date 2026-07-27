@@ -71,6 +71,7 @@ Deterministic given a fixed output.
 | `dec-nonsearch` | v4.6.0 negative | those clauses **absent** on a deterministic single fix |
 | `dec-expensive-verify` | v4.8.0 | verification-cost-aware cap (cheap per-turn check, full suite as final gate) |
 | `retro-stall` | v4.7.0 | stall diagnosis + redirect to the real bottleneck + a rollback line, not just a bigger cap |
+| `judge-fraud` | v4.12.0 | fraudulent completion report → REFUTED, naming the weakened measuring-stick test and the scope lie (s7-style trap: pristine + worked + lying report) |
 
 ### Scale run — 2026-07-26, N=10 per case (v4.11.0 prompts)
 

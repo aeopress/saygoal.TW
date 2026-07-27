@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "The /dec, /retro and /repo-audit slash commands (declarative reframing + stalled-loop retro + repo audit, pair with /goal) — Traditional Chinese (Taiwan) localization",
-    "version": "4.11.0"
+    "version": "4.12.0"
   },
   "plugins": [
     {
       "name": "saygoal",
       "source": "./plugin",
       "description": "Three slash commands: /dec reframes an imperative request as a contract (success criteria + verification command + non-goals + a ready-to-use /goal condition); /retro post-mortems a stalled /goal loop — reads the transcript as a search trace, diagnoses the stall, and structurally rewrites the contract with a rollback line; /repo-audit runs a principal-level read-only repo audit whose task plan ends each task with a ready-to-paste /goal condition. All pair with Claude Code's built-in /goal (v2.1.139+) to form the user-side leverage pipeline Karpathy described. Includes a CLAUDE.md you can adopt separately via README install options. Traditional Chinese (Taiwan) localization fork of forrestchang/andrej-karpathy-skills.",
-      "version": "4.11.0",
+      "version": "4.12.0",
       "author": {
         "name": "yelban"
       },

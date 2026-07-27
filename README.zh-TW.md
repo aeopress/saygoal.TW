@@ -15,6 +15,7 @@
 - **`/dec <任務>`** 把你的任務改寫成成功條件 + 驗證指令 + 邊界，並產出一條可直接貼上的 **`/goal` condition**。
 - 把它貼進 Claude Code（或 Codex）內建的 **`/goal`**——一個小快模型每 turn 檢查 transcript，盯著 agent 做到條件成立為止。
 - **`/saygoal:retro`**——`/goal` loop 停滯時，把 transcript 當搜尋 trace 讀、診斷卡點，結構性重寫契約（修訂版 condition＋一行 rollback）。
+- **`/saygoal:judge`**——驗收閘門：把任何「做完了」當成一組主張，自己重跑契約的驗證、對量尺路徑稽核 diff，回傳 **VERIFIED / VERIFIED WITH CAVEATS / REFUTED**。
 
 **30 秒範例：**
 
@@ -127,6 +128,14 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 ### loop 停滯時 —— `/saygoal:retro`，外圈
 
 `/goal` loop 可能停滯：撞到 `or stop after 12 turns` 時還在重提同一失敗修法的變體。把原 condition 直接重掛是唯一保證沒用的一招——[Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 的消融實驗裡，參數級調整沒有可靠增益，整個 5× 效果都來自機制級重寫。`/saygoal:retro` 就是這條 pipeline 的外圈：把停滯 session 的 transcript 當搜尋 trace 讀，判定停滯類別——驗證斷裂、門檻不可達、邊界牆住正解（自動併入的約束列頭號嫌疑）、固著、範圍錯置——然後結構性重寫契約。輸出是一條可直接貼上的修訂版 condition，外加一行 `rollback:` 照抄原版——壞的重寫最多只花你一次貼上。每次 retro 還會在 `.claude/saygoal.history.jsonl` 補一行紀錄，之後的 `/dec` grilling 會先讀它——過去的停滯原因變成下一份契約的前置查證。
+
+### 驗收「做完了」—— `/saygoal:judge`，驗收閘門
+
+成功宣告需要跟停滯一樣的審視。`/goal` 的 evaluator 只 pattern-match transcript 裡貼出的輸出——沒有任何機制證明那段輸出是真的跑出來的；委派模型的「全部測試通過」是報告，不是證據。`/saygoal:judge` 補上這個洞：把任何完成報告當成**主張的集合**，自己重跑宣稱的驗證、比對實際變更，按真實頻率獵典型造假（斷言弱化成遷就壞行為、期望值被悄悄改寫、容差放大、真呼叫換 mock、範圍謊報、殘渣），最後給證據先行的判決：**VERIFIED / VERIFIED WITH CAVEATS / REFUTED**。它唯讀＋執行、絕不動手修；被要求判自己 session 的工作時會聲明利益衝突——fresh-context 驗證優於自我批改。
+
+測試套件裡為它埋了一個陷阱：bug 根本沒修、被凍結的測試被改成斷言錯誤的值，而報告寫著「做完了、全部測試通過、只動了原始檔」。實跑會回傳 REFUTED 並指名全部四個造假——包括報告自相矛盾這點，因為「更新了回歸測試」與「只動了原始檔」不可能同時為真。單次執行是煙霧測試、不是通過率（依本 repo [`EXPERIMENT.md`](./EXPERIMENT.md) 的標準：N≥10 之前一律視為不確定）。
+
+設計改編自 [`Sahir619/fable-method`](https://github.com/Sahir619/fable-method) 的 `fable-judge`（MIT），但有一個結構性升級：fable 的判官是通用的，得從受審的報告裡自己重建主張清單——等於**讓被審者定義考題**。saygoal 的判官是**契約錨定**的，主張清單免費、而且在實作開始前就凍結了：Verification 說該重跑什麼、量尺路徑說該 diff 稽核什麼、可改路徑說哪裡准動、逐項差異報告就是現成的主張表、編譯出的 `saygoal.stop-check.sh` 是機械判決核心。每次判決往 `.claude/saygoal.history.jsonl` 補一行，`/dec` grilling 從此同時學到 loop 怎麼停滯（來自 `/saygoal:retro`）與什麼造假真的被抓過。刻意設計成手動——loop 收斂後、委派交回時、別的 session 交件時你按的驗收鍵——絕不是每個任務後面自動掛的關卡。
 
 ### 契約也是委派 prompt —— 與 Codex 委派工具協作
 

@@ -35,8 +35,9 @@ CASES = SPEC / "cases"
 SCALE = SPEC / "runs" / "scale"
 
 # An emitted artifact: /dec compiles a `/goal "…"` condition, /retro ships a
-# revised condition carrying the original on a `rollback:` line.
-ARTIFACT = re.compile(r'/goal "|rollback:')
+# revised condition carrying the original on a `rollback:` line, /judge
+# delivers a verdict from its fixed taxonomy.
+ARTIFACT = re.compile(r'/goal "|rollback:|VERIFIED|REFUTED')
 
 wanted = sys.argv[1:] or sorted(p.name for p in CASES.iterdir() if p.is_dir())
 

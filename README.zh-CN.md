@@ -15,6 +15,7 @@
 - **`/dec <任务>`** 把你的任务改写成成功条件 + 验证指令 + 边界，并产出一条可直接粘贴的 **`/goal` condition**。
 - 把它贴进 Claude Code（或 Codex）内置的 **`/goal`**——一个小快模型每 turn 检查 transcript，盯着 agent 做到条件成立为止。
 - **`/saygoal:retro`**——`/goal` loop 停滞时，把 transcript 当搜索 trace 读、诊断卡点，结构性重写契约（修订版 condition＋一行 rollback）。
+- **`/saygoal:judge`**——验收闸门：把任何「做完了」当成一组主张，自己重跑契约的验证、对量尺路径审计 diff，返回 **VERIFIED / VERIFIED WITH CAVEATS / REFUTED**。
 
 **30 秒范例：**
 
@@ -127,6 +128,14 @@ Karpathy 最强的洞见其实是**用户端的纪律**，不是 LLM 自我约�
 ### loop 停滞时 —— `/saygoal:retro`，外圈
 
 `/goal` loop 可能停滞：撞到 `or stop after 12 turns` 时还在重提同一失败修法的变体。把原 condition 直接重挂是唯一保证没用的一招——[Bilevel Autoresearch](https://arxiv.org/abs/2603.23420) 的消融实验里，参数级调整没有可靠增益，整个 5× 效果都来自机制级重写。`/saygoal:retro` 就是这条 pipeline 的外圈：把停滞 session 的 transcript 当搜索 trace 读，判定停滞类别——验证断裂、门槛不可达、边界墙住正解（自动并入的约束列头号嫌疑）、固着、范围错置——然后结构性重写契约。输出是一条可直接粘贴的修订版 condition，外加一行 `rollback:` 照抄原版——坏的重写最多只花你一次粘贴。每次 retro 还会在 `.claude/saygoal.history.jsonl` 补一行记录，之后的 `/dec` grilling 会先读它——过去的停滞原因变成下一份契约的前置查证。
+
+### 验收「做完了」—— `/saygoal:judge`，验收闸门
+
+成功宣告需要跟停滞一样的审视。`/goal` 的 evaluator 只 pattern-match transcript 里贴出的输出——没有任何机制证明那段输出是真的跑出来的；委派模型的「全部测试通过」是报告，不是证据。`/saygoal:judge` 补上这个洞：把任何完成报告当成**主张的集合**，自己重跑宣称的验证、比对实际变更，按真实频率猎典型造假（断言弱化成迁就坏行为、期望值被悄悄改写、容差放大、真调用换 mock、范围谎报、残渣），最后给证据先行的判决：**VERIFIED / VERIFIED WITH CAVEATS / REFUTED**。它只读＋执行、绝不动手修；被要求判自己 session 的工作时会声明利益冲突——fresh-context 验证优于自我批改。
+
+测试套件里为它埋了一个陷阱：bug 根本没修、被冻结的测试被改成断言错误的值，而报告写着「做完了、全部测试通过、只动了源文件」。实跑会返回 REFUTED 并指名全部四个造假——包括报告自相矛盾这点，因为「更新了回归测试」与「只动了源文件」不可能同时为真。单次执行是冒烟测试、不是通过率（依本 repo [`EXPERIMENT.md`](./EXPERIMENT.md) 的标准：N≥10 之前一律视为不确定）。
+
+设计改编自 [`Sahir619/fable-method`](https://github.com/Sahir619/fable-method) 的 `fable-judge`（MIT），但有一个结构性升级：fable 的判官是通用的，得从受审的报告里自己重建主张清单——等于**让被审者定义考题**。saygoal 的判官是**契约锚定**的，主张清单免费、而且在实现开始前就冻结了：Verification 说该重跑什么、量尺路径说该 diff 审计什么、可改路径说哪里准动、逐项差异报告就是现成的主张表、编译出的 `saygoal.stop-check.sh` 是机械判决核心。每次判决往 `.claude/saygoal.history.jsonl` 补一行，`/dec` grilling 从此同时学到 loop 怎么停滞（来自 `/saygoal:retro`）与什么造假真的被抓过。刻意设计成手动——loop 收敛后、委派交回时、别的 session 交件时你按的验收键——绝不是每个任务后面自动挂的关卡。
 
 ### 契约也是委派 prompt —— 与 Codex 委派工具协作
 

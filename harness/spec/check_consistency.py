@@ -199,7 +199,7 @@ except (json.JSONDecodeError, KeyError, FileNotFoundError) as e:
 
 
 # --------------------------------------------------------------- command files
-for cmd in ["dec.md", "retro.md", "repo-audit.md"]:
+for cmd in ["dec.md", "retro.md", "repo-audit.md", "judge.md"]:
     p = ROOT / "plugin" / "commands" / cmd
     check(f"command file present & non-empty: {cmd}",
           p.exists() and p.stat().st_size > 0,
@@ -241,7 +241,8 @@ check("history path agrees: retro writes it, dec reads it",
       f"retro={HISTORY_PATH in retro} dec={HISTORY_PATH in dec}")
 # No near-miss variant anywhere (e.g. a dash or wrong dir would break silently).
 variant_files = []
-for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md", *ALL_READMES]:
+for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md",
+            "plugin/commands/judge.md", *ALL_READMES]:
     txt = read(rel)
     if "saygoal.history" in txt and HISTORY_PATH not in txt:
         variant_files.append(rel)
@@ -276,7 +277,8 @@ check("harvest audits the verification surface before semantic review",
 check("trace-file handshake: dec (writer clause) ↔ retro (reader)",
       TRACE_FILE in dec and TRACE_FILE in retro,
       f"dec={TRACE_FILE in dec} retro={TRACE_FILE in retro}")
-trace_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md"]
+trace_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md",
+                                  "plugin/commands/judge.md"]
                   if "saygoal.trace" in read(rel) and TRACE_FILE not in read(rel)]
 check("no mistyped trace-file variant", not trace_variants,
       f"variants in: {trace_variants}" if trace_variants else "clean")
@@ -310,7 +312,8 @@ check("no file still quotes the retired 20-turn default", not stale_cap,
 check("dec.md compiles the stop-check at dispatch and runs it at harvest",
       dec.count(STOPCHECK_FILE) >= 2,
       f"occurrences={dec.count(STOPCHECK_FILE)}")
-stopcheck_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md"]
+stopcheck_variants = [rel for rel in ["plugin/commands/dec.md", "plugin/commands/retro.md",
+                                      "plugin/commands/judge.md"]
                       if "saygoal.stop-check" in read(rel) and STOPCHECK_FILE not in read(rel)]
 check("no mistyped stop-check variant", not stopcheck_variants,
       f"variants in: {stopcheck_variants}" if stopcheck_variants else "clean")
@@ -323,6 +326,40 @@ check("every README documents the compiled stop-check", not missing_stopcheck,
 missing_trace = [r for r in ALL_READMES if TRACE_FILE not in read(r)]
 check("every README documents the delegated trace file", not missing_trace,
       f"missing in: {missing_trace}" if missing_trace else "all four")
+
+
+# -------------------------------- judge acceptance gate (v4.12.0, 2026-07-27)
+# /saygoal:judge is the pipeline's acceptance gate (adapted from fable-judge in
+# Sahir619/fable-method, MIT, re-anchored on the contract). Pinned: the full
+# verdict taxonomy, the claims-not-evidence stance, re-run + UNVERIFIABLE
+# labeling, the authority order, read-and-run-only, the contract anchors
+# (surface + stop-check), and the shared-history handshake with /dec.
+judge = read("plugin/commands/judge.md")
+
+check("judge verdict taxonomy is complete",
+      all(v in judge for v in ["VERIFIED", "VERIFIED WITH CAVEATS", "REFUTED"]))
+check("judge treats reports as claims, not evidence",
+      "主張的集合,不是證據" in judge)
+check("judge re-runs claimed verifications and labels the un-runnable",
+      "UNVERIFIABLE" in judge and "重跑" in judge)
+check("judge pins the authority order",
+      "使用者明示 > 規格 > 測試 > 現行程式碼行為" in judge)
+check("judge never fixes — read-and-run only",
+      "不修任何東西" in judge)
+check("judge audits the verification surface and runs the stop-check",
+      "量尺" in judge and STOPCHECK_FILE in judge)
+check("judge appends the shared history file with verdict outcomes",
+      HISTORY_PATH in judge and '"verified"' in judge and '"refuted"' in judge)
+check("dec reads judge verdicts from the history file",
+      "saygoal:judge" in dec and HISTORY_PATH in dec)
+check("dec harvest names the judge as its invocable form",
+      "收割程序的可叫用形式是 `/saygoal:judge`" in dec)
+check("judge declares the conflict-of-interest rule (fresh-context verifier)",
+      "利益衝突" in judge)
+missing_judge_docs = [r for r in ALL_READMES if "saygoal:judge" not in read(r)]
+check("every README documents /saygoal:judge and the command exists",
+      not missing_judge_docs and (ROOT / "plugin/commands/judge.md").exists(),
+      f"missing in: {missing_judge_docs}" if missing_judge_docs else "all four")
 
 
 # ----------------------------------------- Codex execute-goal seam (v4.10.0)
