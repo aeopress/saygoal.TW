@@ -15,7 +15,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 
 - **`/goal` evaluator(Haiku)**:只讀對話 transcript,不自己跑指令、不讀檔案,只能 pattern-match。要它判定的證據,必須以「實作時執行 CMD 並貼出輸出」的形式出現在 transcript 裡,並指定可比對的字串或數字;ensure / verify / make sure 這類可被靜態宣告矇混的動詞它判不了,禁用。
 - **實作 agent**:可能是另一個模型、可能在收斂壓力下走捷徑。契約條款是護欄,不是教學——邊界防的是 loop 誘發的投機(弱化測試、刪功能保綠燈),不是模型不懂。
-- **使用者**:契約是他確認方向的介面;condition 會被貼進全新 session,必須自包含——檔名、路徑、門檻寫死在字串裡,禁止「剛剛討論的」這類對話內指涉。
+- **使用者**:契約是他確認方向的介面;condition 會被貼進全新 session,必須 self-contained——檔名、路徑、門檻內嵌,no deictic references。
 
 ---
 
@@ -36,7 +36,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - 專案存在 `.claude/saygoal.invariants.md`(恆定邊界:不可碰路徑、量尺路徑、外部系統政策)時先讀,對應面直接併入 #3、不再重問;grilling 問出使用者標明「每個任務都一樣」的邊界時,提議寫入該檔(經同意)。
 - 專案存在 `.claude/saygoal.history.jsonl`(`/saygoal:retro` 的停滯紀錄與 `/saygoal:judge` 的驗收判決)時先讀:同類任務先前的停滯原因、被抓過的造假手法,直接列為本次先查證或先問的項目。
 - 一次只問一題並附建議答案;選項可枚舉的題目用 AskUserQuestion。能用唯讀查碼回答的(測試檔在不在、script 有沒有在 package.json)就查碼,不要問。
-- **品味式約束翻譯成脈絡,不照抄**:「保持簡單」「別過度設計」「先快速做一版」這類話,問出底層原因(固定選項:**實驗性、可能短命** / **有期限壓力、先求能動** / **長期正式功能**),編進任務脈絡(#4)。約束只能列舉「不要做什麼」;脈絡讓實作 agent 在約束沒預料到的情況自己做對決定。
+- **品味式約束翻譯成脈絡,不照抄**:「保持簡單」「別過度設計」「先快速做一版」這類話,問出底層原因(固定選項:**實驗性、可能短命** / **有期限壓力、先求能動** / **長期正式功能**),編進任務脈絡(#4)。約束只能枚舉禁止事項;脈絡是 commander's intent。
 - **多子項規範多問一題**:差異報告由誰產生——**實作者自報**(預設、省 token)/ **workflow 獨立驗證**(每子項一個獨立驗證 agent,只對照規範與成果、不看實作過程;可信度高但 token 成本明顯較高)。子項的判準:各自獨立可驗收的交付物才算(不同檔案、功能或驗證方式各一項);同一交付物的多個維度不算。單子項不問。
 - 問完停下等回答;全部已清楚就跳過直接編——別對已經夠精確的請求硬問。
 
@@ -55,7 +55,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - ✅ `run \`npx playwright test login.spec.ts\` and paste output showing "X passed, 0 failed"`
 - ❌ `tests pass` / `check the file is correct`(evaluator 判不了)
 
-**先查證再輸出**:唯讀確認驗證指令真的可跑(測試檔存在、script 在 package.json 裡、binary 在 PATH)。不存在就標「⚠ 此驗證尚不存在,需先建立」並列為第一步;驗證目標本身就是任務交付物時(如「寫一個 script」)同樣處理,不構成矛盾。
+**先查證再輸出**:對每條驗證指令做唯讀 smoke check。不存在就標「⚠ 此驗證尚不存在,需先建立」並列為第一步;驗證目標本身就是任務交付物時(如「寫一個 script」)同樣處理,不構成矛盾。
 
 **多子項規範 → 逐項差異報告**:驗證除指令輸出外,再加「貼出逐項實作報告:每個子項標 implemented / deviated,deviated 要說明差異」——堵住 loop 收斂了但建的不是你要的東西。grilling 選了 workflow 獨立驗證,報告改由驗證 workflow 產生(寫法見 #5)。
 
@@ -72,7 +72,7 @@ description: Reframe an imperative request as a declarative contract (success cr
 - **不可改動**(Constraints):不得更動的行為/語義(public API、認證流程、輸出格式);其中**量尺路徑**(verification surface——驗證依賴的測試、bench script、CI 設定)列成明確路徑清單:量尺被動即作弊,這份清單也是收割時 diff 稽核的依據
 - **可改路徑**(Write scope):允許寫 / 禁止碰的路徑
 - **外部系統限制**(Action policy):read-only / draft-only / 不得 send·deploy·merge
-- **最多幾回合**(預算):一律加回合上限;預設 `or stop after 12 turns`——Claude 5 世代單回合能完成過去整個 loop 的量,上限是停損不是額度,舊世代或較小模型實作時可放寬到 20——再依任務複雜度**與驗證成本**調整——loop 成本 ≈ 回合數 × 每回合驗證成本,驗證昂貴(整包 e2e、長 benchmark、完整 build)時下調上限,或改編便宜的針對性驗證(如單一 spec 檔)逐回合跑、全套只在收尾跑一次
+- **最多幾回合**(預算):一律加回合上限;預設 `or stop after 12 turns`——Claude 5 世代單回合能完成過去整個 loop 的量,上限是停損不是額度,舊世代或較小模型實作時可放寬到 20——再依任務複雜度**與驗證成本**調整——loop 成本 ≈ 回合數 × 每回合驗證成本,驗證昂貴(整包 e2e、長 benchmark、完整 build)時下調上限,或內圈改跑便宜的 targeted check(如單一 spec 檔)、full suite 只當 final gate
 
 ### 4. 任務脈絡 (Context) — 選配,有才寫
 一句話說明**為什麼做、任務壽命**(「這是實驗,一個月後很可能刪掉」勝過「保持簡單」)。只在 grilling 問出內容、或使用者已提供時出現;沒有就整節省略。

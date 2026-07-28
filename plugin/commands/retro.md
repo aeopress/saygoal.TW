@@ -47,7 +47,7 @@ argument-hint: [optional — paste the original /goal condition and the last few
 1. **停滯診斷**:類別 + 證據(第幾回合、重複了什麼)
 2. **修訂欄位**:只列動過的欄位與理由,沒動的不重抄
 3. **修訂版 `/goal` condition**:自包含、遵守 `/dec` 的 evaluator 規則(執行 CMD 並貼出輸出、指定可 pattern-match 的字串、禁用 ensure/verify/make sure)
-4. **rollback 行**:原 condition 原文照抄、前綴 `rollback:`——修訂版跑得更差時貼回原版,壞的重寫最多只花你一次貼上(validate-and-revert)
+4. **rollback 行**:原 condition 原文照抄、前綴 `rollback:`,供 validate-and-revert
 5. **寫入歷史**:append 一行到 `.claude/saygoal.history.jsonl`:`{"date":"YYYY-MM-DD","task":"<一句話>","outcome":"stalled","stall_class":"<類別>","resolution":"<改了什麼>"}`——之後 `/dec` grilling 會先讀它,把同類任務的停滯原因變成下次的前置查證。該檔未被 gitignore 時提醒一句(不要擅自改 `.gitignore`)。
 
 ---

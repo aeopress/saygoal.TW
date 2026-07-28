@@ -14,7 +14,7 @@ argument-hint: [optional — the contract or /goal condition, and where the work
 ## 輸入與錨定
 
 - **工作**:本對話最近完成的一份工作,或使用者指名的對象(diff、branch、目錄、貼上的別人 report)。
-- **契約**(saygoal 的優勢所在):有 `/dec` 契約或 `/goal` condition 時,主張清單不用湊——**Verification 欄位=該重跑什麼、量尺路徑=該 diff 稽核什麼、可改路徑=寫入範圍稽核、逐項差異報告=現成的逐項主張**;`.claude/saygoal.stop-check.sh` 存在就先跑它,exit code 是機械判決核心。主張由實作前凍結的契約供給,不由被審方的報告供給——被審者不得定義考題。
+- **契約**(saygoal 的優勢所在):有 `/dec` 契約或 `/goal` condition 時,主張清單不用湊——**Verification 欄位=該重跑什麼、量尺路徑=該 diff 稽核什麼、可改路徑=寫入範圍稽核、逐項差異報告=現成的逐項主張**;`.claude/saygoal.stop-check.sh` 存在就先跑它,exit code 是機械判決核心。主張由實作前凍結的契約供給,不由被審方的報告供給——被審者不得定義考題(chain of custody)。
 - 沒有契約時退化為通用驗收:先從報告與對話收集主張(做了什麼、驗了什麼、宣稱沒動什麼),每條列成待證項,再走同一套程序。
 - 委派收割:trace 檔 `.claude/saygoal.trace.log` 只讀與最終狀態相關的行——過程 token 不回灌。
 
@@ -24,8 +24,8 @@ argument-hint: [optional — the contract or /goal condition, and where the work
 2. **確立實際變更**:`git diff` 與 `git status` 是 ground truth,報告不是(無 git 時對 pristine 參照做目錄 diff)。先比對量尺路徑——**量尺被動,直接進 REFUTED 候選**,除非契約明文允許受控修改;再比對可改路徑,抓越界寫入;最後把整個 touched 集合對照請求的合理範圍。
 3. **逐條重跑宣稱的驗證**:不要讀了程式碼點頭——真的跑測試、build、script、頁面,貼實際輸出。跑不了的(缺環境、缺憑證、只有人眼能驗)標 **UNVERIFIABLE**,絕不視為真。
 4. **獵典型造假**,按真實世界頻率排序:
-   - **弱化檢查**:專門 diff 測試檔——斷言放寬或刪除、期望值改成遷就新行為、測試被 skip、容差放大、真呼叫換成 mock。**改過的測試在追溯到規格之前推定有罪。**
-   - **假完成**:宣稱通過但沒展示執行、部分通過報成全部通過、"should work now"、失敗 transcript 上的成功措辭。
+   - **弱化檢查(test tampering)**:專門 diff 測試檔——斷言放寬或刪除、期望值改成遷就新行為、測試被 skip、容差放大、真呼叫換成 mock。**改過的測試在追溯到規格之前推定有罪。**
+   - **假完成(false completion)**:宣稱通過但沒展示執行、部分通過報成全部通過、"should work now"、失敗 transcript 上的成功措辭。
    - **範圍潛變**:超出請求的改動——順手重構、重排版、新依賴、「順便改進」。
    - **違背規格**:程式碼改成遷就一個與 README/規格/docstring 矛盾的檢查。權威順序:**使用者明示 > 規格 > 測試 > 現行程式碼行為**。
    - **殘渣**:scratch 檔、debug print、註解掉的程式碼、孤兒 import。
