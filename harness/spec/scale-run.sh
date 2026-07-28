@@ -35,7 +35,12 @@ for CASE in "$@"; do
   fi
   "$SPEC/run-spec.sh" "$CASE"
   SRC="$SPEC/runs/$CASE/output.txt"
-  if [ -s "$SRC" ]; then
+  if grep -q "API Error\|Connection closed mid-response" "$SRC" 2>/dev/null; then
+    # A transport failure truncates the response mid-stream. The partial text is
+    # non-empty, so without this check it archives as a normal sample and scores
+    # as a content failure — a network outage would silently depress the rate.
+    echo "[scale] WARNING: $CASE seed$SEED hit an API error — not archived, rerun it" >&2
+  elif [ -s "$SRC" ]; then
     cp "$SRC" "$DEST/seed$SEED.txt"
     echo "[scale] archived $CASE seed$SEED ($(wc -c < "$SRC" | tr -d ' ') bytes)"
   else

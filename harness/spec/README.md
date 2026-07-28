@@ -120,6 +120,45 @@ same fixtures compiled and flagged the stub under Pause-if instead; both
 responses are defensible, which is why the scorer reports them apart rather
 than picking a winner.
 
+### Scale run — 2026-07-28, N=10 per case, after the anchor-term rewrite
+
+Re-run of all five cases (`judge-fraud` included for the first time) after the
+anchor-term rewrite that replaced several explanatory phrases in the command
+files with high-density anchors. The 2026-07-26 archive is kept as
+`runs/scale-v4.11.0-baseline/` for comparison.
+
+**Result: 48/49 compiled runs pass (98%), across all five cases (50 runs total).**
+
+| Case | Compiled runs passing | Grilled |
+|---|---|---|
+| `dec-search` | 10/10 | — |
+| `dec-nonsearch` | 10/10 | — |
+| `dec-expensive-verify` | 8/9 | seed 1 |
+| `retro-stall` | 10/10 | — |
+| `judge-fraud` | 10/10 | — |
+
+**The headline finding is not the rate — it is that prompt vocabulary copies
+straight into output.** R4 of the audit reworded dec.md's verification-cost
+clause from 「便宜的針對性驗證…全套只在收尾跑一次」 to `targeted check` /
+`full suite` / `final gate`. Output wording followed it wholesale: 10/10
+baseline runs say 收尾 and none say `final gate`; 10/10 post-change runs say
+`final gate` and none say 收尾. The behavior is intact — post-change runs
+express the same two-tier verification, mostly as 內圈/外圈 — but the oracle's
+regex literals were derived from the old wording, so two runs scored as misses
+until the oracle was updated to track the new clause (same rule the README
+already states for `check_consistency.py` constants; the semantic bar is
+unchanged and the negative control still fails a single-tier run).
+
+Two consequences worth carrying forward: an anchor-term edit is a *measurement*
+change as much as a prompt change, and an English anchor in a zh-TW prompt
+surfaces as an English term in the user-facing contract.
+
+The one remaining miss (`dec-expensive-verify` seed 5, refactor constraint) is
+unrelated to the rewrite — the anti-speculation table was not touched, and the
+run does freeze behavior, via 「公開簽名與回傳值語義」 plus a characterization
+test rather than the 可觀察行為 wording the oracle pins. Baseline scored 9/9 on
+that signal, so this is one sample of variance, not a regression.
+
 > **What this does and doesn't establish.** It is a per-case pass rate for the
 > compiled artifacts on the current prompts, at the sample size this repo's own
 > [`EXPERIMENT.md`](../../EXPERIMENT.md) sets as the bar ("any N=3 LLM A/B

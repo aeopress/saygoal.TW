@@ -302,7 +302,8 @@ check("no mistyped trace-file variant", not trace_variants,
       f"variants in: {trace_variants}" if trace_variants else "clean")
 check("dec.md reads the project invariants file", INVARIANTS_FILE in dec)
 check("repo-audit finders report everything; the gate is downstream",
-      "全報" in audit and "寧要 15 個高信心" not in audit)
+      "只管 recall" in audit and "precision 的閘門在下游" in audit
+      and "寧要 15 個高信心" not in audit)
 check("repo-audit mechanically verifies cited file:line before the refuter",
       "行號" in audit and "file:line" in audit)
 
