@@ -71,7 +71,11 @@ for case in wanted:
         if text.strip() == "EMPTY_RUN":
             empty.append(n)
             continue
-        if not ARTIFACT.search(text):
+        # A case may declare `"expect"`: "grilled" means the correct output is
+        # a question, not an artifact; "any" means a draft contract (asked,
+        # /goal string withheld) must carry the same clauses as a compiled
+        # one. Either way every run is scored instead of set aside as a grill.
+        if not ARTIFACT.search(text) and oracle.get("expect") not in ("grilled", "any"):
             grilled.append(n)
             continue
         ok = True

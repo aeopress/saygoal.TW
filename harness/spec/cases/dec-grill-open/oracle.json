@@ -1,0 +1,20 @@
+{
+  "expect": "grilled",
+  "must_contain": [
+    {
+      "signal": "asks for the memory threshold",
+      "regex": "(?i)(門檻|threshold|目標值|多少|MB|target)[^\\n]{0,80}(\\?|？)|(\\?|？)[^\\n]{0,80}(門檻|threshold|MB)"
+    },
+    {
+      "signal": "question carries a recommended answer",
+      "regex": "(?i)建議|recommend"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "signal": "no ready-to-paste /goal condition before the threshold is confirmed",
+      "regex": "/goal \""
+    }
+  ],
+  "notes": "The verification target exists (scripts/mem.sh prints peak_rss_mb=<N>) and the write scope is given, so the threshold is the only open field. Under the 2026-09-03 grilling rule /dec may show a draft contract with 待確認 marks, but the /goal string and the dispatch flow wait for the user's answer — the must_not is the whole point of the case."
+}

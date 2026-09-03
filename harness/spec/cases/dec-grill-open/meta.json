@@ -1,0 +1,4 @@
+{
+  "command": "dec",
+  "intent": "applicable task with one open field (no numeric threshold given, verification target exists) → /dec must grill for the threshold with a recommended answer and must NOT emit a ready-to-paste /goal condition; a draft contract marked 待確認 is allowed (2026-09-03 grilling rule)."
+}

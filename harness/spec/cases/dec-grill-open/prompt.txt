@@ -1,0 +1,1 @@
+Reduce the peak memory of `python -m src.indexer` — scripts/mem.sh reports it and it is too high right now. Only src/indexer.py should change.

@@ -1,8 +1,15 @@
 {
+  "expect": "any",
   "must_contain": [
-    {"signal": "refactor constraint auto-added", "regex": "(?i)without (chang|alter|modif)[a-z]*[^\\n]{0,25}behaviou?r|observable[^\\n]{0,20}behaviou?r|可觀察行為|既有.{0,6}(測試|斷言|test|assertion)"},
-    {"signal": "verification-cost awareness", "regex": "(?i)targeted|cheaper|smaller|subset|per-turn|full (e2e )?suite|final gate|lower.{0,12}(cap|turn)|reduce.{0,12}turn|針對性|便宜|逐回合|下調|全套|收尾|內圈|外圈"}
+    {
+      "signal": "refactor constraint auto-added",
+      "regex": "(?i)without (chang|alter|modif)[a-z]*[^\\n]{0,25}behaviou?r|observable[^\\n]{0,20}behaviou?r|可觀察行為|既有.{0,6}(測試|斷言|test|assertion)|(?:public|公開)[^\\n]{0,12}(?:signature|簽章|簽名|interface|介面|function|函式)[^\\n]{0,40}(?:return|回傳|unchanged|identical|不變|相同)|(?:return value|回傳值)[^\\n]{0,30}(?:unchanged|identical|same|不變|相同)|行為[^\\n]{0,12}(?:不變|相同|一致)|不可改動[^\\n]{0,40}(?:簽章|簽名|signature|回傳值|return value)"
+    },
+    {
+      "signal": "verification-cost awareness",
+      "regex": "(?i)targeted|cheaper|smaller|subset|per-turn|full (e2e )?suite|final gate|lower.{0,12}(cap|turn)|reduce.{0,12}turn|針對性|便宜|逐回合|下調|全套|收尾|內圈|外圈"
+    }
   ],
   "must_not_contain": [],
-  "notes": "Subjective — the cost-awareness wording varies, and the command file is zh-TW so outputs may carry the signal in Chinese (針對性/便宜/逐回合/下調/全套/收尾 are the zh equivalents of targeted/cheaper/per-turn/lowered/full-suite/at-the-end). The regex covers both languages; treat a miss as a prompt-tuning candidate, not a hard regression. 2026-07-28: dec.md reworded this clause to the anchors `targeted check` / `full suite` / `final gate`, and output vocabulary followed it wholesale — 10/10 pre-change runs said 收尾 and 0/10 post-change runs did, while 10/10 post-change runs say `final gate`. Added `final gate|內圈|外圈` (the inner/outer verification loops the reworded clause names) so the oracle tracks the current wording; the semantic bar is unchanged — a run that verifies at one cost tier only still fails."
+  "notes": "Subjective — the cost-awareness wording varies, and the command file is zh-TW so outputs may carry the signal in Chinese (針對性/便宜/逐回合/下調/全套/收尾 are the zh equivalents of targeted/cheaper/per-turn/lowered/full-suite/at-the-end). The regex covers both languages; treat a miss as a prompt-tuning candidate, not a hard regression. 2026-07-28: dec.md reworded this clause to the anchors `targeted check` / `full suite` / `final gate`, and output vocabulary followed it wholesale — 10/10 pre-change runs said 收尾 and 0/10 post-change runs did, while 10/10 post-change runs say `final gate`. Added `final gate|內圈|外圈` (the inner/outer verification loops the reworded clause names) so the oracle tracks the current wording; the semantic bar is unchanged — a run that verifies at one cost tier only still fails. 2026-09-03: on Claude Fable 5.1 the refactor constraint is stated as concrete API terms in 2/10 runs (「公開函式行為與重構前完全相同」, `without changing the name, parameters, return value, or exception behavior of total(cart)`) instead of the 可觀察行為 / observable-behavior wording — the same variance the 2026-07-28 Opus seed 5 showed. Added the public-signature / return-value / 行為不變 synonyms; the semantic bar is unchanged: the contract must freeze behavior, and a run that constrains nothing still fails. Since the 2026-09-03 grilling rule /dec may answer this fixture with a draft contract (question + 待確認 marks, /goal string withheld); `expect: any` scores those drafts too — the two clauses must appear whether it compiles or drafts."
 }
