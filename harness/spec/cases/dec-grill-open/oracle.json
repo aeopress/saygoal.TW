@@ -3,7 +3,7 @@
   "must_contain": [
     {
       "signal": "asks for the memory threshold",
-      "regex": "(?i)(門檻|threshold|目標值|多少|MB|target)[^\\n]{0,80}(\\?|？)|(\\?|？)[^\\n]{0,80}(門檻|threshold|MB)"
+      "regex": "(?i)(門檻|threshold|目標值|多少|MB|target)[^\\n]{0,80}(\\?|？)|(\\?|？)[^\\n]{0,80}(門檻|threshold|MB)|(要問的一題|待確認[，,]?\\s*1\\s*題|問題\\s*\\d*\\s*[：:])[^\\n]{0,24}門檻"
     },
     {
       "signal": "question carries a recommended answer",
@@ -13,8 +13,8 @@
   "must_not_contain": [
     {
       "signal": "no ready-to-paste /goal condition before the threshold is confirmed",
-      "regex": "/goal \""
+      "regex": "(?m)^\\s*/goal\\s+[\"A-Za-z]|/goal \""
     }
   ],
-  "notes": "The verification target exists (scripts/mem.sh prints peak_rss_mb=<N>) and the write scope is given, so the threshold is the only open field. Under the 2026-09-03 grilling rule /dec may show a draft contract with 待確認 marks, but the /goal string and the dispatch flow wait for the user's answer — the must_not is the whole point of the case. 2026-10-02 repair: mem.sh used to measure a one-word README, so peak RSS was the interpreter floor. It now indexes a seeded 45MB corpus (measured peak_rss_mb=324; 142 on half the corpus; 14 for a bare interpreter), the request says python3, and tests exist, so the threshold is the only open field. Archives before this date ran the old fixture."
+  "notes": "The verification target exists (scripts/mem.sh prints peak_rss_mb=<N>) and the write scope is given, so the threshold is the only open field. Under the 2026-09-03 grilling rule /dec may show a draft contract with 待確認 marks, but the /goal string and the dispatch flow wait for the user's answer — the must_not is the whole point of the case. 2026-10-02 repair: mem.sh used to measure a one-word README, so peak RSS was the interpreter floor. It now indexes a seeded 45MB corpus (measured peak_rss_mb=324; 142 on half the corpus; 14 for a bare interpreter), the request says python3, and tests exist, so the threshold is the only open field. Archives before this date ran the old fixture. 2026-10-03: the must_not now also catches a /goal condition written without quotes (/goal takes either form; the old literal let a quote-less compile through). The threshold question also counts when it is a question heading without a question mark (「要問的一題：…門檻」「待確認，1 題：成功門檻」「問題 N：…門檻」); a threshold queued for a later turn (「下一題會問門檻」) still does not. Only Fable seed 10 and Opus seed 4 of the repaired runs flip; no earlier archive changes."
 }

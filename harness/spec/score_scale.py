@@ -36,10 +36,13 @@ SPEC = Path(__file__).resolve().parent
 CASES = SPEC / "cases"
 SCALE = SPEC / "runs" / os.environ.get("SCALE_NAME", "scale")
 
-# An emitted artifact: /dec compiles a `/goal "…"` condition, /retro ships a
+# An emitted artifact: /dec compiles a `/goal …` condition, /retro ships a
 # revised condition carrying the original on a `rollback:` line, /judge
-# delivers a verdict from its fixed taxonomy.
-ARTIFACT = re.compile(r'/goal "|rollback:|VERIFIED|REFUTED')
+# delivers a verdict from its fixed taxonomy. /goal takes its condition with or
+# without quotes, so a line that starts with `/goal ` followed by a quote or a
+# word counts; prose that only mentions `/goal` (backticked, or followed by
+# Chinese) does not.
+ARTIFACT = re.compile(r'(?m)^\s*/goal\s+["A-Za-z]|/goal "|rollback:|VERIFIED|REFUTED')
 
 wanted = sys.argv[1:] or sorted(p.name for p in CASES.iterdir() if p.is_dir())
 
