@@ -254,6 +254,82 @@ morning samples). The pre-change Fable archive is kept as
 | `judge-fraud` | 9/10 | the seed 2 capture artifact from the morning run, unchanged |
 | `retro-stall` | 10/10 | morning sample |
 
+The archive behind this table is kept as
+`runs/scale-v4.13.0-fable51-20260903-final/`.
+
+### Scale run — 2026-10-02, N=10 per case, Claude Opus 5.5 at xhigh (v4.14.0 prompts)
+
+Claude Opus 5.5 became Claude Code's default model, so the same six cases ran
+on it at the effort Claude Code users actually get (`xhigh`; the API default
+for this model is `medium`, but Claude Code sets its own). `run-spec.sh` now
+takes `EFFORT` alongside `MODEL`, because without it a run inherits whatever
+effort the CLI has saved on that machine. One seed of six cases took about
+5m30s, so each foreground call runs one seed.
+
+```bash
+for s in $(seq 1 10); do MODEL=claude-opus-5-5 EFFORT=xhigh MAX_USD=8.00 harness/spec/scale-run.sh "$s"; done
+python3 harness/spec/score_scale.py
+```
+
+A note on cost, since the Fable section above talks in API prices:
+`claude -p` bills whatever the CLI is logged in with. On the maintainer's
+machine that is a claude.ai Max subscription, so these runs draw on
+subscription usage, and `MAX_USD` is a guard on Claude Code's cost estimate,
+not a bill.
+
+**Result: 38/40 compiled runs pass (95%); 20 runs grilled, all in two cases.**
+
+| Case | Compiled runs passing | Grilled | Fable 5.1 (final) |
+|---|---|---|---|
+| `dec-expensive-verify` | 10/10 after the oracle update (8/10 before) | — | 10/10 |
+| `dec-grill-open` | 8/10 | — | 10/10 |
+| `dec-nonsearch` | 0/0 | 10/10 | 10/10 compiled |
+| `dec-search` | 0/0 | 10/10 | 10/10 compiled |
+| `judge-fraud` | 10/10 | — | 9/10 |
+| `retro-stall` | 10/10 | — | 10/10 |
+
+**The headline is that Opus 5.5 finds the fixtures' defects, every time.**
+The fixtures are minimal by design, and three of them carry a flaw a careful
+reader can see from the files alone. Fable 5.1 compiled past all three;
+Opus 5.5 stops on them and asks, which is the grilling rule working:
+
+- `dec-search`: `scripts/bench.sh` only echoes a hard-coded `p95=241ms`, so
+  the only way to reach "p95 under 200ms" is to edit the measuring stick.
+  The 07-26 run saw one seed notice this; Opus 5.5 notices it 10/10.
+- `dec-nonsearch`: the existing `test_missing_file_raises` asserts the exact
+  behavior the request removes. Opus 5.5 asks how that test should change
+  before writing a contract that would otherwise invite the implementer to
+  delete or weaken it, 10/10.
+- `dec-grill-open`: `scripts/mem.sh` measures one input file whose content
+  is the single word `fixture`, so peak RSS is the interpreter's floor and no
+  change to `src/indexer.py` can move it. Eight runs still ask for the
+  threshold; seeds 5 and 10 ask first which input to measure and queue the
+  threshold as the next question. Those two are scored as misses against the
+  case's stated intent (the threshold is the only open field), not explained
+  away — the fixture, not the prompt, is what fails here.
+
+`dec-expensive-verify` has the same kind of gap (the `Makefile` calls
+`scripts/e2e_all.sh`, which the fixture does not contain); Opus 5.5 raises
+it inside a draft contract, and the case already scores drafts
+(`expect: any`). Its two pre-update misses were vocabulary: seeds 7 and 9
+state the two-tier verification as 「每回合只跑特徵測試」「最終閘門」「比預設的
+12 低」. Those synonyms were added; on every earlier archive the new regex
+flips no sample, and a single-tier contract still fails.
+
+**Consequence: on Opus 5.5, the v4.6.0 guardrail cases measure nothing.**
+`dec-search` (guardrails must appear) and `dec-nonsearch` (guardrails must
+not appear) compile zero contracts, and their drafts cannot stand in: the
+oracles match English clauses in the `/goal` string, which a draft withholds
+by design. Repairing the three fixtures (a real bench, a request that says
+what happens to the conflicting test, a realistic memory-test input) would
+restore the measurement but invalidates comparison with every archive above,
+so it is left as a separate change with its own reruns.
+
+Output length moves the other way from the Fable run: `judge-fraud` reports
+are about twice as long (3.98k vs 2.07k mean bytes) and `dec-grill-open`
+answers a third longer, while the other cases are within ±15%. The judge
+seed-2 capture artifact from the Fable run did not recur.
+
 > **What this does and doesn't establish.** It is a per-case pass rate for the
 > compiled artifacts on the current prompts, at the sample size this repo's own
 > [`EXPERIMENT.md`](../../EXPERIMENT.md) sets as the bar ("any N=3 LLM A/B

@@ -9,6 +9,7 @@
 #   harness/spec/run-spec.sh <case_id> [more_case_ids...]
 #   harness/spec/run-spec.sh all
 #   MODEL=claude-opus-4-8 harness/spec/run-spec.sh dec-search
+#   MODEL=claude-opus-5-5 EFFORT=xhigh harness/spec/run-spec.sh all
 #
 # Notes:
 #   - No repo and no tools: these commands only emit text, they don't edit code.
@@ -59,13 +60,18 @@ PY
   WORKDIR="$SPEC"
   [ -d "$CASE_DIR/repo" ] && WORKDIR="$CASE_DIR/repo"
 
-  echo "[run-spec] $CASE  (command=/$COMMAND, model=${MODEL:-<cli default>}, cwd=${WORKDIR#$ROOT/})"
+  echo "[run-spec] $CASE  (command=/$COMMAND, model=${MODEL:-<cli default>}, effort=${EFFORT:-<cli default>}, cwd=${WORKDIR#$ROOT/})"
 
   set +e
   MODEL_ARG=()
   [ -n "${MODEL:-}" ] && MODEL_ARG=(--model "$MODEL")
+  # Without EFFORT the run inherits the CLI's saved default, which differs by
+  # machine and model — pin it when a run is meant to be compared.
+  EFFORT_ARG=()
+  [ -n "${EFFORT:-}" ] && EFFORT_ARG=(--effort "$EFFORT")
   ( cd "$WORKDIR" && printf '%s' "$PROMPT" | claude -p \
     ${MODEL_ARG[@]+"${MODEL_ARG[@]}"} \
+    ${EFFORT_ARG[@]+"${EFFORT_ARG[@]}"} \
     --max-budget-usd "${MAX_USD:-1.00}" \
     --output-format text \
     --disallowed-tools "WebSearch,WebFetch,Task,Skill,Bash,Edit,Write" \
