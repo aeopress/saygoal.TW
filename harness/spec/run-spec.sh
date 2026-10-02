@@ -12,7 +12,11 @@
 #   MODEL=claude-opus-5-5 EFFORT=xhigh harness/spec/run-spec.sh all
 #
 # Notes:
-#   - No repo and no tools: these commands only emit text, they don't edit code.
+#   - Each run gets a throwaway copy of the case's fixture repo, and Bash is
+#     enabled inside it so /dec can smoke-check its verification commands the
+#     way it would in a real session. Edit/Write stay disabled: these commands
+#     emit text, they don't implement. Whatever Bash writes (.venv, generated
+#     data) lands in the copy, which is deleted after the run.
 #   - Output goes to harness/spec/runs/<case_id>/output.txt (gitignored).
 #   - Needs network + a working `claude` CLI; run outside the sandbox.
 
@@ -55,12 +59,17 @@ PY
   printf '%s' "$PROMPT" > "$RUN_DIR/expanded_prompt.md"
 
   # /dec verifies its verification target against the filesystem, so run inside
-  # the case's fixture repo when present — otherwise it grills for missing files
-  # instead of compiling. Read-only (Edit/Write/Bash are disallowed below).
-  WORKDIR="$SPEC"
-  [ -d "$CASE_DIR/repo" ] && WORKDIR="$CASE_DIR/repo"
+  # a fresh copy of the case's fixture repo. A copy, not the repo itself: with
+  # Bash enabled the model may run `uv sync`, a bench, or a data generator, and
+  # none of that may leak into the next run. Not a git repo, so `git` fails
+  # cleanly instead of reading the saygoal checkout around the fixtures.
+  WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/saygoal-spec-$CASE.XXXXXX")"
+  if [ -d "$CASE_DIR/repo" ]; then
+    rsync -a --exclude .venv --exclude __pycache__ --exclude .pytest_cache \
+      --exclude data "$CASE_DIR/repo/" "$WORKDIR/"
+  fi
 
-  echo "[run-spec] $CASE  (command=/$COMMAND, model=${MODEL:-<cli default>}, effort=${EFFORT:-<cli default>}, cwd=${WORKDIR#$ROOT/})"
+  echo "[run-spec] $CASE  (command=/$COMMAND, model=${MODEL:-<cli default>}, effort=${EFFORT:-<cli default>}, cwd=<copy of cases/$CASE/repo>)"
 
   set +e
   MODEL_ARG=()
@@ -74,12 +83,13 @@ PY
     ${EFFORT_ARG[@]+"${EFFORT_ARG[@]}"} \
     --max-budget-usd "${MAX_USD:-1.00}" \
     --output-format text \
-    --disallowed-tools "WebSearch,WebFetch,Task,Skill,Bash,Edit,Write" \
+    --disallowed-tools "WebSearch,WebFetch,Task,Skill,Edit,Write" \
     --permission-mode bypassPermissions \
     --no-session-persistence \
     > "$RUN_DIR/output.txt" 2> "$RUN_DIR/stderr.log" )
   EXIT=$?
   set -e
+  rm -rf "$WORKDIR"
 
   echo "[run-spec] $CASE  exit=$EXIT  $(wc -c < "$RUN_DIR/output.txt" | tr -d ' ') bytes → $RUN_DIR/output.txt"
 done
