@@ -101,7 +101,7 @@ without [constraints,多條用 AND 串] or stop after [N] turns
 ```
 
 ### 何時暫停 (Pause-if) — 獨立列出,**不要塞進上面的 condition**
-Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會誤判為失敗而繼續 loop。改為獨立列出觸發情境,並建議用 Stop hook 實作(缺權限 / 需破壞性操作 / 需人工決策 / 同一驗證連續 3 回合輸出相同失敗——停滯訊號 / 文件衝突)。
+Claude `/goal` 無原生 Pause-if 欄位;塞進 condition 字串 evaluator 會誤判為失敗而繼續 loop。改為獨立列出觸發情境,並建議用 Stop hook 實作(缺權限 / 需破壞性操作 / 需人工決策 / 同一驗證連續 3 回合輸出相同失敗——停滯訊號 / 文件衝突)。依 `/goal` 文件,互動 session 中 hook 結束回合會讓 goal 暫停(印出 `Goal paused`)而非清除(v2.1.269+),使用者送一則訊息就能續跑;連續數回合沒有 tool call 時,harness 也會自己停下 loop、goal 仍掛著。這兩種停都由 harness 處理,不必寫進契約。
 
 loop 停滯、或撞回合上限仍未收斂時,別把原 condition 直接重掛——用 `/saygoal:retro` 讀 transcript 診斷停滯類別、結構性重寫契約。
 

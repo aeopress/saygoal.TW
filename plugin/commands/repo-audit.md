@@ -19,7 +19,7 @@ argument-hint: [optional focus — a subdirectory, dimension, or concern]
 - 只分析。不修改程式碼、設定或依賴。你唯一建立的檔案是報告本身。
 - 不要只讀「健康聲明」——實際觀察。在可行範圍內執行 repo 自己的唯讀指令(install、lint、type-check、測試、依賴稽核),並如實回報:測試失敗就明說失敗並附上輸出。
 - 按專案成熟度校準——不要拿企業級標準要求 prototype。repo 很大時做 Pareto 深潛(核心 20%),並說明略過了什麼。
-- auditor 階段**只管 recall**、不自我抑制(「只報高嚴重度」這類指令壓的正是 recall);precision 的閘門在下游機械查證與 refuter。事實與判斷分開。某維度健康就用一句話帶過。真正的優點也要列——那是該保護的東西。
+- auditor 階段**只管 recall**、不自我抑制(「只報高嚴重度」這類指令壓的正是 recall);precision 的閘門在下游機械查證與 refuter。事實與判斷分開。某維度健康就用一句話帶過;auditor 沒交回結果(拒答、出錯、逾時)的維度標「未稽核」並寫明原因,不能算成健康。真正的優點也要列——那是該保護的東西。
 
 ## 工作方式
 - 若你在 plan mode 被啟動:所有決策都已寫在這裡,你的計畫只有一行(「依此規格執行 audit」),立即送審。

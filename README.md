@@ -308,7 +308,7 @@ Full data, the v1→v2 verbatim mapping, and caveats live in [`EXPERIMENT.md`](.
 
 ## Relationship to upstream
 
-This repository is a Traditional Chinese (Taiwan) localization fork of [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills), updated for the Claude Code Opus 4.7 → 4.8 era. The plugin and marketplace are named `saygoal`; the README is bilingual (English + 繁體中文).
+This repository is a Traditional Chinese (Taiwan) localization fork of [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills), first updated for the Claude Code Opus 4.7 → 4.8 era and since kept in step with the Claude 5 generation (Fable 5.1, Opus 5.5, Sonnet 5.5). The plugin and marketplace are named `saygoal`; the README is bilingual (English + 繁體中文).
 
 ## License
 

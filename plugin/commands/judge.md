@@ -25,10 +25,10 @@ argument-hint: [optional — the contract or /goal condition, and where the work
 3. **逐條重跑宣稱的驗證**:不要讀了程式碼點頭——真的跑測試、build、script、頁面,貼實際輸出。跑不了的(缺環境、缺憑證、只有人眼能驗)標 **UNVERIFIABLE**,絕不視為真。
 4. **獵典型造假**,按真實世界頻率排序:
    - **弱化檢查(test tampering)**:專門 diff 測試檔——斷言放寬或刪除、期望值改成遷就新行為、測試被 skip、容差放大、真呼叫換成 mock。**改過的測試在追溯到規格之前推定有罪。**
-   - **假完成(false completion)**:宣稱通過但沒展示執行、部分通過報成全部通過、"should work now"、失敗 transcript 上的成功措辭。
+   - **假完成(false completion)**:宣稱通過但沒展示執行、部分通過報成全部通過、"should work now"、失敗 transcript 上的成功措辭、只跑語法檢查或檢查指令根本沒啟動(缺依賴、找不到 build 工具)就報完成。
    - **範圍潛變**:超出請求的改動——順手重構、重排版、新依賴、「順便改進」。
    - **違背規格**:程式碼改成遷就一個與 README/規格/docstring 矛盾的檢查。權威順序:**使用者明示 > 規格 > 測試 > 現行程式碼行為**。
-   - **殘渣**:scratch 檔、debug print、註解掉的程式碼、孤兒 import。
+   - **殘渣**:scratch 檔、debug print、註解掉的程式碼、孤兒 import、被提交成永久測試檔的臨時驗證腳本。
 5. **判決,證據先行**——判決放第一行:
    - **VERIFIED**:每條承重主張都重現,無造假。
    - **VERIFIED WITH CAVEATS**:工作可靠;精確列出跑不了的項目與小殘渣。

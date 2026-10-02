@@ -202,7 +202,7 @@ Opus 4.8 で A/B を回したら、バグ発見率は 33% → 90% に跳ね上�
 
 ## このリポジトリについて
 
-[`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills) の繁体字（台湾）ローカライズ fork を、Claude Code Opus 4.7 → 4.8 時代向けに手を入れたものです。プラグイン名・マーケットプレイス名は `saygoal`。
+[`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills) の繁体字（台湾）ローカライズ fork を、Claude Code Opus 4.7 → 4.8 時代向けに手を入れたもので、その後も Claude 5 世代（Fable 5.1、Opus 5.5、Sonnet 5.5）に合わせて更新しています。プラグイン名・マーケットプレイス名は `saygoal`。
 
 ## ライセンス
 

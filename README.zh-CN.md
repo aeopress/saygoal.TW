@@ -308,7 +308,7 @@ Audit 任务已内嵌 `/dec` 的 evaluator 规则，可直接粘进 `/goal`、�
 
 ## 与上游的关系
 
-本仓库是 [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills) 的繁体中文（台湾）在地化 fork，为 Claude Code Opus 4.7 → 4.8 时代更新内容。Plugin / marketplace 命名为 `saygoal`；README 为双语（英文 + 繁体中文）。
+本仓库是 [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills) 的繁体中文（台湾）在地化 fork，最初为 Claude Code Opus 4.7 → 4.8 时代更新内容，之后持续跟进 Claude 5 世代（Fable 5.1、Opus 5.5、Sonnet 5.5）。Plugin / marketplace 命名为 `saygoal`；README 为双语（英文 + 繁体中文）。
 
 ## 授权
 
