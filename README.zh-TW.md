@@ -143,7 +143,7 @@ Karpathy 最強的洞見其實是**使用者端的紀律**，不是 LLM 自我�
 
 - **[openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc)**（`/codex:rescue`）：`/dec` 先把模糊需求編成契約，再 `/codex:rescue --background <契約全文>` 丟給 Codex 背景執行。收割（`/codex:result`）時照契約的驗證欄位驗收；逐項差異報告讓你只讀最終輸出就能判斷有沒有偏離，不用回看過程。
 - **[codex-orchestrator](https://github.com/yelban/codex-orchestrator)**（`codex-agent` CLI）：平行 fan-out 多個任務時，每個 `codex-agent start "<契約>"` 都帶著自己的驗證與邊界；`await-turn` 收割後照 Verification 驗收即可。
-- **`codex exec`**（裸 codex CLI——最通用的通道，不需裝任何 plugin）：把 `codex exec -C <repo> --sandbox workspace-write --json "<契約>"` 當背景 task 派發。背景 task ID、`--json` 事件流、完成通知、TaskStop 就是運行狀態追蹤——等同 codex-orchestrator 包裝的 PID + exitcode + JSONL log，由 Claude 背景 task 原生提供。這是 `/codex:rescue`、`codex-agent` 都不可用時的最低共同標準 fallback（需網路——Claude 在 sandbox 下要放行）。
+- **`codex exec`**（裸 codex CLI——最通用的通道，不需裝任何 plugin）：把 `codex exec -m gpt-6.1-sol -c model_reasoning_effort="high" -C <repo> --sandbox workspace-write --json "<契約>" < /dev/null` 當背景 task 派發。型號與 effort 寫死在指令上，不沿用你 `~/.codex/config.toml` 的預設；該型號不可用時 `/dec` 會停下說明，不會改跑別的型號。背景 task ID、`--json` 事件流、完成通知、TaskStop 就是運行狀態追蹤——等同 codex-orchestrator 包裝的 PID + exitcode + JSONL log，由 Claude 背景 task 原生提供。這是 `/codex:rescue`、`codex-agent` 都不可用時的最低共同標準 fallback（需網路——Claude 在 sandbox 下要放行）。
 
 Claude 版的 `/dec` 會把這件事自動化：契約輸出後偵測這幾個通道（看 session 的 skills 清單、`command -v codex-agent`、`command -v codex`），偵測到就用 AskUserQuestion 問執行通道——自己 `/goal` loop，還是委派出去。你的選擇記在專案的 `.claude/saygoal.local.json`，下次排在第一個選項；但**每次仍會問**（每次委派都花額度，單次否決權留在你手上）。選了委派就當場背景派發，收割時照契約的驗證欄位驗收。都沒安裝就不會提委派，行為與從前相同。
 
@@ -217,7 +217,7 @@ codex plugin add saygoal@saygoal
 
 用 `$dec <任務>`（或從 `/skills` 選），再把產出的 `/goal "..."` 貼進 Codex 內建 `/goal`。
 
-若要使用可選的固定模型派工，先明確確認這份契約，再呼叫 `$execute-goal`。第一次使用時，它會偵測內附的 `saygoal_writer` custom-agent 範本是否已安裝，並提供專案層級（`.codex/agents/`）或個人層級（`~/.codex/agents/`）設定；設定後開新 thread，再呼叫一次。它會啟動主 thread 的 `/goal`、只派一個 `gpt-5.6-sol`／`high` writer，最後由主 thread 獨立重跑驗證。
+若要使用可選的固定模型派工，先明確確認這份契約，再呼叫 `$execute-goal`。第一次使用時，它會偵測內附的 `saygoal_writer` custom-agent 範本是否已安裝，並提供專案層級（`.codex/agents/`）或個人層級（`~/.codex/agents/`）設定；設定後開新 thread，再呼叫一次。它會啟動主 thread 的 `/goal`、只派一個 `gpt-6.1-sol`／`high` writer，最後由主 thread 獨立重跑驗證。
 
 `$execute-goal` 不會默默換成未釘選模型；若環境沒有該模型或不能選 custom agent，會在改檔前暫停。這是 Codex-only 功能，Claude Code 的 `/saygoal:dec` 完全不變。
 

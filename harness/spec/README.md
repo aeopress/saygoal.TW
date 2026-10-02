@@ -36,7 +36,7 @@ eval is too expensive and noisy to catch:
   command backing it;
 - **Codex execute-goal seam** — the execution skill requires an explicitly
   confirmed contract, owns the parent `/goal`, dispatches exactly one pinned
-  `gpt-5.6-sol/high` writer, independently reruns verification, and never adds
+  `gpt-6.1-sol/high` writer, independently reruns verification, and never adds
   a Claude Code command with the same name. Section-aware checks and negative
   controls reject contradictory writer counts, missing confirmation guards,
   commented-out or multiline-only model pins, and self-report-only verification.

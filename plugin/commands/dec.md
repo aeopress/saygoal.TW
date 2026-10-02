@@ -146,7 +146,7 @@ loop 停滯、或撞回合上限仍未收斂時,別把原 condition 直接重掛
 
 - 選 2:用 **Skill 工具**叫用 `codex:rescue`、args 為 `--background <契約全文>`(不是 Bash);收割 `/codex:status` + `/codex:result`。
 - 選 3:Bash 跑 `codex-agent start "<契約全文>"`;收割 `codex-agent await-turn` + `output`。
-- 選 4:Bash 跑 `codex exec -C <repo 根> --sandbox workspace-write --json "<契約全文>"`、帶 `run_in_background: true`(需網路,Claude 沙箱下要放行)。背景 task 提供進度查詢與完成通知;卡太久用 TaskStop 中止、收回自己做。收割讀 output 尾的最終 assistant 訊息(或派發時加 `-o <檔>` 單獨落最終訊息)。
+- 選 4:Bash 跑 `codex exec -m gpt-6.1-sol -c model_reasoning_effort="high" -C <repo 根> --sandbox workspace-write --json "<契約全文>" < /dev/null`、帶 `run_in_background: true`(需網路,Claude 沙箱下要放行)。型號與 effort 寫死在指令上,不吃 `~/.codex/config.toml` 的預設;該型號不可用時停下回報,不默默換未釘選模型;`< /dev/null` 不可省,否則 codex exec 會等 stdin 到逾時。背景 task 提供進度查詢與完成通知;卡太久用 TaskStop 中止、收回自己做。收割讀 output 尾的最終 assistant 訊息(或派發時加 `-o <檔>` 單獨落最終訊息)。
 
 **委派版契約的一個調整**:搜尋型任務的 trace 條款改為落檔版、併入契約文字——`after each attempt, append one line to .claude/saygoal.trace.log: <UTC time> | executor: <channel> | tried → result → ruled out`。委派行程沒有 transcript 連續性,收割與 `/saygoal:retro` 讀這個檔。
 

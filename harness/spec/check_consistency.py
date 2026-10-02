@@ -143,7 +143,7 @@ def execute_goal_invariants(execute, writer):
             in verification
         ),
         "writer_model": (
-            active_toml_string(writer, "model") == "gpt-5.6-sol"
+            active_toml_string(writer, "model") == "gpt-6.1-sol"
             and active_toml_string(writer, "model_reasoning_effort") == "high"
         ),
         "writer_safety": (
@@ -151,7 +151,7 @@ def execute_goal_invariants(execute, writer):
             and "Do not spawn subagents" in writer
         ),
         "effective_writer_identity": (
-            'model = "gpt-5.6-sol"' in preflight
+            'model = "gpt-6.1-sol"' in preflight
             and 'model_reasoning_effort = "high"' in preflight
             and 'sandbox_mode = "workspace-write"' in preflight
             and "exactly one matching definition" in preflight.lower()
@@ -277,6 +277,28 @@ check("dec.md preference enum includes codex-exec", '"codex-exec"' in dec)
 missing_deleg = [r for r in ALL_READMES if "codex exec" not in read(r)]
 check("every README documents the codex exec delegation channel",
       not missing_deleg, f"missing in: {missing_deleg}" if missing_deleg else "all four")
+
+# The dispatch line must pin model and effort on the command itself (the
+# user's ~/.codex/config.toml default is not the contract's executor) and close
+# stdin, or `codex exec` waits on it until the background task times out.
+DEC_EXEC_PIN = ("-m gpt-6.1-sol", 'model_reasoning_effort="high"', "< /dev/null")
+
+
+def dec_exec_pinned(text):
+    # Only the command span counts: the prose after it may name the same flags.
+    line = next((ln for ln in text.splitlines() if ln.startswith("- 選 4:")), "")
+    cmd = re.search(r"Bash 跑 `([^`]*)`", line)
+    return bool(cmd) and all(p in cmd.group(1) for p in DEC_EXEC_PIN)
+
+
+check("dec.md pins the codex exec dispatch to gpt-6.1-sol/high with stdin closed",
+      dec_exec_pinned(dec))
+check("dec.md exec-pin negative control rejects an unpinned dispatch",
+      not dec_exec_pinned(dec.replace("-m gpt-6.1-sol ", "")))
+check("dec.md exec-pin negative control rejects the previous model",
+      not dec_exec_pinned(dec.replace("gpt-6.1-sol", "gpt-5.6-sol")))
+check("dec.md exec-pin negative control rejects an open stdin",
+      not dec_exec_pinned(dec.replace(" < /dev/null", "")))
 
 
 # ------------------- P1: verification surface, delegated trace, invariants (2026-07-26)
@@ -406,7 +428,7 @@ if execute_path.exists() and writer_path.exists():
           invariants["no_unpinned_fallback"])
     check("execute-goal independently verifies writer output",
           invariants["independent_verification"])
-    check("writer pins gpt-5.6-sol at high reasoning", invariants["writer_model"])
+    check("writer pins gpt-6.1-sol at high reasoning", invariants["writer_model"])
     check("writer is workspace-write and cannot delegate further",
           invariants["writer_safety"])
     check("execute-goal verifies the effective writer identity",
@@ -420,7 +442,7 @@ if execute_path.exists() and writer_path.exists():
         "do not spawn parallel writers.", "spawn a second writer."
     )
     commented_model = writer.replace(
-        'model = "gpt-5.6-sol"', '# model = "gpt-5.6-sol"'
+        'model = "gpt-6.1-sol"', '# model = "gpt-6.1-sol"'
     )
     self_report_only = execute.replace(
         "Rerun the contract's declared verification in the parent thread.",
@@ -431,7 +453,7 @@ if execute_path.exists() and writer_path.exists():
     )
     model_only_in_instructions = commented_model.replace(
         'developer_instructions = """',
-        'developer_instructions = """\nmodel = "gpt-5.6-sol"',
+        'developer_instructions = """\nmodel = "gpt-6.1-sol"',
     )
     check("execute-goal negative control rejects a second writer",
           not execute_goal_invariants(contradictory_execute, writer)["single_pinned_writer"])
@@ -443,6 +465,13 @@ if execute_path.exists() and writer_path.exists():
           not execute_goal_invariants(confirmation_guard_removed, writer)["confirmed_contract"])
     check("execute-goal negative control ignores model text inside instructions",
           not execute_goal_invariants(execute, model_only_in_instructions)["writer_model"])
+
+    stale_writer = writer.replace('gpt-6.1-sol', 'gpt-5.6-sol')
+    stale_preflight = execute.replace('gpt-6.1-sol', 'gpt-5.6-sol')
+    check("execute-goal negative control rejects the previous writer model",
+          not execute_goal_invariants(execute, stale_writer)["writer_model"])
+    check("execute-goal negative control rejects stale preflight model text",
+          not execute_goal_invariants(stale_preflight, writer)["effective_writer_identity"])
 
 check("Claude plugin has no execute-goal command",
       not (ROOT / "plugin/commands/execute-goal.md").exists())
