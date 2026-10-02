@@ -431,6 +431,58 @@ decision.
 The archives are `runs/scale-v4.14.0-opus55-repaired/` and
 `runs/scale-v4.14.0-fable51-repaired/`.
 
+### Scale run — 2026-10-03, `dec-search` with scope stated, Bash enabled, N=10 per model
+
+Two changes landed before this run. `run-spec.sh` now gives each run a
+throwaway copy of the fixture with Bash enabled (commit `4ed7a16`), which
+removes the confound above: the models now actually run the verification
+commands. And `dec-search` took option A (commit `4a23107`): the request
+ends with "Only src/search.py may change, and no new dependencies.", and the
+tests compare ranking on the default catalog with an independent full-scan
+reference. Only `dec-search` was rerun, both models at `xhigh`; the other
+cases have no archive in the Bash environment yet.
+
+**Result: every compiled contract passes, guardrails included (Opus 5.5 4/4,
+Fable 5.1 7/7). Opus 5.5 now compiles where it compiled 0 of 20 before; both
+models still stop to ask about a third of the time or more.**
+
+| | Opus 5.5 | Fable 5.1 |
+|---|---|---|
+| compiled, all signals pass | 4 | 7 |
+| grilled | 6 | 3 |
+| ran the verification commands | 10/10 | 10/10 |
+
+Every output reports measured numbers (baseline p95 between 306 and 342 ms,
+`10 passed`). One Opus run went further and ran pytest with
+`uv run --no-project --with pytest` so that smoke-checking would not create
+`uv.lock` or `.venv` inside a project where only `src/search.py` may change.
+
+**What they ask now is a real flaw in the bench, which only measuring could
+expose.** `scripts/load.py` imports the app before it starts the clock, and
+the catalog has fewer than 50 distinct words, so every one- or two-word query
+(about 2,500 of them) can be answered at import time and the bench passes
+without the endpoint getting faster. The bench also repeats queries, so a
+result cache flatters it the same way. Eight of the nine grills are this
+point: Opus seeds 1, 7 and 8 name the precompute shortcut, seeds 5 and 10 ask
+whether results may be cached, and Fable seeds 4, 7 and 8 ask whether the
+one-time cost the bench cannot see needs a cap. That is the verification-
+surface reasoning `/dec` exists for; the fixture leaves the policy open.
+Fable grills more than in the run above (3 vs 1) because it now prototypes
+an index and sees the cost move.
+
+**The ninth is an artifact of the new harness.** Opus seed 6 asks how to
+confirm that only `src/search.py` changed: the throwaway copy is not a git
+repo, so the diff audit and the stop-check script `/dec` compiles have no
+baseline commit to compare against. Real `/dec` sessions run in a repo.
+
+Closing the gap would mean a vocabulary large enough that the query space
+cannot be enumerated, a request that states whether caching and startup
+precomputation are allowed, and a git baseline in the copy for cases that
+need one. Those are recorded here as the next step, not taken.
+
+The archives are `runs/scale-v4.14.0-opus55-bash/` and
+`runs/scale-v4.14.0-fable51-bash/`.
+
 > **What this does and doesn't establish.** It is a per-case pass rate for the
 > compiled artifacts on the current prompts, at the sample size this repo's own
 > [`EXPERIMENT.md`](../../EXPERIMENT.md) sets as the bar ("any N=3 LLM A/B
