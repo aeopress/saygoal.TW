@@ -1,4 +1,4 @@
 {
   "command": "dec",
-  "intent": "search-type task → contract must compile in the trace + anti-fixation guardrails (v4.6.0)"
+  "intent": "search-type task → contract must compile in the trace + anti-fixation guardrails (v4.6.0). The request states threshold, bench, write scope and dependency policy, so nothing should be left to ask."
 }

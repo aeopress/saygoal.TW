@@ -1,6 +1,10 @@
 import json
+import re
+
+import pytest
 
 from src.app import app
+from src.corpus import CATALOG as FULL_CATALOG
 from src.search import search
 
 CATALOG = [
@@ -27,6 +31,29 @@ def test_ranked_by_term_occurrences_then_catalog_order():
 def test_empty_query_returns_nothing():
     assert search("", CATALOG) == []
     assert search("   ", CATALOG) == []
+
+
+def _full_scan(query, catalog):
+    # Independent reference for the documented semantics, kept deliberately
+    # slow and obvious: word match ignoring case, every term required,
+    # rank by total occurrences, ties in catalog order.
+    word = re.compile(r"[a-z0-9]+")
+    terms = word.findall(query.lower())
+    if not terms:
+        return []
+    hits = []
+    for i, listing in enumerate(catalog):
+        words = word.findall(listing.lower())
+        counts = [words.count(t) for t in terms]
+        if all(counts):
+            hits.append((-sum(counts), i))
+    return [i for _, i in sorted(hits)]
+
+
+@pytest.mark.parametrize("query", ["cable", "Charger CASE", "omega omega", "lamp, stand!"])
+def test_default_catalog_ranking_matches_a_full_scan(query):
+    # Goes through the default catalog, the path GET /search uses.
+    assert search(query) == _full_scan(query, FULL_CATALOG)
 
 
 def _get(path, query=""):
