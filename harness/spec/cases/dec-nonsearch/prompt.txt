@@ -1,1 +1,1 @@
-In src/config.py, make parse_config return an empty dict instead of raising FileNotFoundError when the config file is missing. There is an existing test at tests/test_config.py.
+In src/config.py, make parse_config return an empty dict instead of raising FileNotFoundError when the config file is missing. There is an existing test at tests/test_config.py; update its test_missing_file_raises to expect {} instead of the exception.

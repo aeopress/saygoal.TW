@@ -1,11 +1,23 @@
 {
   "must_contain": [
-    {"signal": "turn cap", "regex": "(?i)stop after \\d+ turns"},
-    {"signal": "runnable verification (paste output)", "regex": "(?i)paste|output"}
+    {
+      "signal": "turn cap",
+      "regex": "(?i)stop after \\d+ turns"
+    },
+    {
+      "signal": "runnable verification (paste output)",
+      "regex": "(?i)paste|output"
+    }
   ],
   "must_not_contain": [
-    {"signal": "trace clause (should be absent)", "regex": "(?i)search log|every 5 turns"},
-    {"signal": "anti-fixation clause (should be absent)", "regex": "(?i)failed twice"}
+    {
+      "signal": "trace clause (should be absent)",
+      "regex": "(?i)search log|every 5 turns"
+    },
+    {
+      "signal": "anti-fixation clause (should be absent)",
+      "regex": "(?i)failed twice"
+    }
   ],
-  "notes": "A single deterministic fix with an existing test — not a multi-round search. The guardrails must NOT appear."
+  "notes": "A single deterministic fix with an existing test — not a multi-round search. The guardrails must NOT appear. 2026-10-02 repair: the request now says what happens to the conflicting test (update test_missing_file_raises to expect {}), the rest of the request is byte-identical, and pyproject.toml makes `from src.config` importable under pytest. If a model still grills here, the threshold is the model's, not the fixture's. Archives before this date ran the old fixture."
 }

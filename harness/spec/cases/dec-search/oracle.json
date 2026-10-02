@@ -1,10 +1,22 @@
 {
   "must_contain": [
-    {"signal": "trace clause", "regex": "(?i)search log|every 5 turns"},
-    {"signal": "anti-fixation clause", "regex": "(?i)failed twice|repeat(ing)? an approach"},
-    {"signal": "turn cap", "regex": "(?i)stop after \\d+ turns"},
-    {"signal": "runnable verification (paste output)", "regex": "(?i)paste|output"}
+    {
+      "signal": "trace clause",
+      "regex": "(?i)search log|every 5 turns"
+    },
+    {
+      "signal": "anti-fixation clause",
+      "regex": "(?i)failed twice|repeat(ing)? an approach"
+    },
+    {
+      "signal": "turn cap",
+      "regex": "(?i)stop after \\d+ turns"
+    },
+    {
+      "signal": "runnable verification (paste output)",
+      "regex": "(?i)paste|output"
+    }
   ],
   "must_not_contain": [],
-  "notes": "Threshold (200ms) and bench script are both given, so /dec should compile directly without grilling. Search-type task → both guardrails expected."
+  "notes": "Threshold (200ms) and bench script are both given, so /dec should compile directly without grilling. Search-type task → both guardrails expected. 2026-10-02 repair: the bench used to echo a hard-coded p95, src/search.py returned [], and there was no GET /search handler or test, so the only way to go green was to edit the stick (Opus 5.5 grilled on it 10/10). Now src/app.py serves GET /search over a 180k-listing catalog, scripts/bench.sh drives it in-process (measured p95=314ms, about 60s), and tests/test_search.py pins correctness. Archives before this date ran the old fixture."
 }

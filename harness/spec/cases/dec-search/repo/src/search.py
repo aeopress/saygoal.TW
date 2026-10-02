@@ -1,10 +1,29 @@
-def search(query):
-    # naive: re-tokenizes every request, no cache
-    tokens = tokenize(query)
-    return _scan(tokens)
+"""Catalog search behind GET /search.
 
-def tokenize(q):
-    return q.lower().split()
+search(query) returns catalog indexes, best match first. Matching is
+case-insensitive, every query term must occur in the listing (AND), listings
+rank by how many times the terms occur in total, and ties keep catalog order.
+"""
+import re
 
-def _scan(tokens):
-    return []
+from src.corpus import CATALOG
+
+
+def tokenize(text):
+    # words only: punctuation and symbols never match a query term
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def search(query, catalog=CATALOG):
+    terms = tokenize(query)
+    if not terms:
+        return []
+    scored = []
+    for i, listing in enumerate(catalog):
+        # naive: re-tokenizes every listing on every request, no index, no cache
+        tokens = tokenize(listing)
+        counts = [tokens.count(t) for t in terms]
+        if all(counts):
+            scored.append((-sum(counts), i))
+    scored.sort()
+    return [i for _, i in scored]
