@@ -338,6 +338,99 @@ are about twice as long (3.98k vs 2.07k mean bytes) and `dec-grill-open`
 answers a third longer, while the other cases are within ±15%. The judge
 seed-2 capture artifact from the Fable run did not recur.
 
+The archive behind this section is kept as
+`runs/scale-v4.14.0-opus55-20261002-prerepair/`.
+
+### Scale run — 2026-10-03, repaired fixtures, Opus 5.5 vs Fable 5.1, N=10, both at xhigh
+
+The four `dec-*` fixtures were repaired (commit `49c94bd`; each change is
+described in that case's oracle notes) and both models reran them, ten seeds
+each, effort pinned to `xhigh` on both — the first Fable run with effort
+pinned rather than inherited. `judge-fraud` and `retro-stall` did not change
+and were not rerun. This starts a new series: every archive above ran the old
+fixtures. One seed of the four cases took about 9 minutes on Opus 5.5 and
+about 5 on Fable 5.1 (the repaired fixtures have more files to read).
+
+```bash
+SCALE_NAME=scale-v4.14.0-opus55-repaired MODEL=claude-opus-5-5 EFFORT=xhigh MAX_USD=8.00 \
+  harness/spec/scale-run.sh <seed> dec-search dec-nonsearch dec-grill-open dec-expensive-verify
+SCALE_NAME=scale-v4.14.0-fable51-repaired MODEL=claude-fable-5-1 EFFORT=xhigh MAX_USD=8.00 \
+  harness/spec/scale-run.sh <seed> dec-search dec-nonsearch dec-grill-open dec-expensive-verify
+SCALE_NAME=scale-v4.14.0-opus55-repaired python3 harness/spec/score_scale.py
+```
+
+**Result: every compiled contract passes on both models (Opus 5.5 28/28,
+Fable 5.1 39/39). What differs is how often each stops to ask.**
+
+| Case | Opus 5.5 | Fable 5.1 | Opus 5.5 before repair |
+|---|---|---|---|
+| `dec-search` | 0 compiled, 10 grilled | 9/9, 1 grilled | 0 compiled, 10 grilled |
+| `dec-nonsearch` | 8/8, 2 grilled | 10/10 | 0 compiled, 10 grilled |
+| `dec-grill-open` | 10/10 | 10/10 | 8/10 |
+| `dec-expensive-verify` | 10/10 | 10/10 | 10/10 |
+
+**Two scoring fixes came with this run, and one of them closes a hole.**
+The scorer decided "compiled or grilled" by the literal `/goal "`, and
+`dec-grill-open`'s must_not used the same literal. `/goal` takes its condition
+with or without quotes: Fable's `dec-nonsearch` seed 10 compiled
+`/goal in src/config.py …` and was misfiled as a grill, and a quote-less
+early compile would have passed `dec-grill-open`'s "no `/goal` before the
+threshold is confirmed" unseen. Both now count a line that starts with
+`/goal ` followed by a quote or a word. Separately, two wording synonyms were
+added: a threshold question written as a heading with no question mark
+(Opus seed 4, Fable seed 10), and 「可觀察的行為」 with 的 (Opus seeds 3 and 7).
+Across all archives the changes flip exactly those five samples; earlier
+archive totals do not move, and a threshold queued for a later turn
+(「下一題會問門檻」) still fails.
+
+**The repair resolved what it targeted.** `dec-nonsearch` went from 0 to 8
+compiles on Opus once the request said what happens to the conflicting test,
+and `dec-grill-open` now asks for the threshold 10/10 on both models. Of
+Opus's two remaining `dec-nonsearch` grills, seed 1 asks whether to rename the
+test (a choice it could have made and stated), and seed 8 stops because it
+could not run the verification commands — see the confound below.
+
+**`dec-search` still compiles nothing on Opus 5.5, for three different
+reasons:**
+
+- **Write scope and dependencies, 6 of 10** (seeds 2, 3, 4, 6, 7, 10). The
+  request does not say which files may change, and `dec.md` lists 可寫邊界
+  among the fields to ask about rather than guess. Opus follows that rule.
+  Fable infers the scope instead: all nine of its compiled contracts state
+  one (edit `src/search.py`, optionally `src/app.py`; never `scripts/`,
+  `tests/`, `src/corpus.py` or `pyproject.toml`), and its one grill (seed 5)
+  asks the same write-scope question. The case was designed to compile
+  directly, which conflicts with `dec.md`'s own grilling list whenever the
+  request leaves the scope out.
+- **A correctness gap in the repaired fixture, 3 of 10** (seeds 1, 5, 9).
+  `tests/test_search.py` checks ranking only against a four-listing catalog
+  passed in explicitly; the one test that goes through the default 180k
+  catalog checks containment and count, not order. An implementation that
+  builds an index for `CATALOG` at import and falls back to the scan for
+  other catalogs would pass all six tests with broken ranking on the fast
+  path. Opus asks whether to add a full-catalog equivalence check. It is
+  right about the gap; `dec.md` would have it flag the missing check and make
+  building it step one rather than ask, but the gap itself is the fixture's.
+- **A design question, 1 of 10** (seed 8): what may be precomputed at startup.
+
+So the v4.6.0 positive guardrail case still measures nothing on Opus 5.5.
+Restoring it needs the request to state the write scope and dependency
+policy and the fixture to test ranking through the default catalog, or a
+change to how `dec.md` treats an inferable write scope.
+
+**Known confound: the eval disallows Bash.** `dec.md` counts a contract as
+done only when every verification command has been checked runnable, and
+`run-spec.sh` disallows Bash so the commands only emit text. Opus 5.5 takes
+the rule literally and stopped once on exactly that (`dec-nonsearch` seed 8);
+several `dec-search` outputs also flag it. Fable proceeds and marks the
+commands unverified. In real use Bash is available, so this grill is an
+artifact of the environment. Allowing read-only Bash in `run-spec.sh` would
+remove it but changes the environment for every archive, so it is a separate
+decision.
+
+The archives are `runs/scale-v4.14.0-opus55-repaired/` and
+`runs/scale-v4.14.0-fable51-repaired/`.
+
 > **What this does and doesn't establish.** It is a per-case pass rate for the
 > compiled artifacts on the current prompts, at the sample size this repo's own
 > [`EXPERIMENT.md`](../../EXPERIMENT.md) sets as the bar ("any N=3 LLM A/B
