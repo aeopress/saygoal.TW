@@ -9,6 +9,10 @@
 # Usage:
 #   harness/spec/scale-run.sh <seed> [case_id ...]     # defaults to all cases
 #   MAX_USD=4.00 harness/spec/scale-run.sh 3 dec-search
+#   SCALE_NAME=scale-opus55 MODEL=claude-opus-5-5 harness/spec/scale-run.sh 1
+#
+# SCALE_NAME picks the archive directory under runs/ (default `scale`), so two
+# models can be archived side by side; score_scale.py reads the same variable.
 #
 # Run in the FOREGROUND: a nested `claude -p` launched from a Claude Code
 # background task is killed silently (empty output, empty stderr).
@@ -27,7 +31,7 @@ fi
 export MAX_USD="${MAX_USD:-4.00}"
 
 for CASE in "$@"; do
-  DEST="$SPEC/runs/scale/$CASE"
+  DEST="$SPEC/runs/${SCALE_NAME:-scale}/$CASE"
   mkdir -p "$DEST"
   if [ -s "$DEST/seed$SEED.txt" ]; then
     echo "[scale] $CASE seed$SEED already archived — skipping"

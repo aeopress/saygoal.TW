@@ -23,16 +23,18 @@ only archived files, so re-scoring after an oracle change costs nothing.
 Usage:
   python3 harness/spec/score_scale.py               # every case with archives
   python3 harness/spec/score_scale.py dec-search    # one case
+  SCALE_NAME=scale-opus55 python3 harness/spec/score_scale.py   # another archive
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 SPEC = Path(__file__).resolve().parent
 CASES = SPEC / "cases"
-SCALE = SPEC / "runs" / "scale"
+SCALE = SPEC / "runs" / os.environ.get("SCALE_NAME", "scale")
 
 # An emitted artifact: /dec compiles a `/goal "…"` condition, /retro ships a
 # revised condition carrying the original on a `rollback:` line, /judge
